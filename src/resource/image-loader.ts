@@ -83,27 +83,6 @@ export class ImageLoader {
         }
     }
 
-    /*
-    func (this *Image) DecodeTile(offset int64, reader SeekingReader) {
-    reader.Seek(offset, 0)
-
-    this.Init(GM1TILEWIDTH, GM1TILEHEIGHT)
-    rawPixels := make([]uint16, GM1TILEBYTES/2)
-    binary.Read(reader, binary.LittleEndian, &rawPixels)
-    //put pixels into image
-    var x, y int
-    for _, u := range rawPixels {
-    r, g, b := extractColors(u)
-    this.SetPixel(15-GM1TilePixelsPerLine[y]/2+x, y, r, g, b) //diamond pattern
-    x++
-    if x >= GM1TilePixelsPerLine[y] {
-    x = 0
-    y++
-}
-}
-}
- */
-
     writeColor(data: Uint8ClampedArray, pos: number, color: number) {
 
         const blue = color & 0b11111;
