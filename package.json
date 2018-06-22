@@ -1,0 +1,25 @@
+{
+  "name": "stronghold",
+  "version": "1.0.0",
+  "description": "Stronghold Javascript Engine",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-loader": "^4.4.1",
+    "typescript": "^2.9.2",
+    "webpack": "^4.12.0",
+    "webpack-cli": "^3.0.8",
+    "webpack-dev-server": "^3.1.4"
+  },
+  "dependencies": {
+    "@types/three": "^0.92.7",
+    "bower": "^1.8.4",
+    "excalibur": "^0.17.0",
+    "rxjs": "^6.2.1",
+    "three.js": "^0.77.1",
+    "webassembly": "^0.11.0"
+  }
+}
