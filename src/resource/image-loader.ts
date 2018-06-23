@@ -12,10 +12,6 @@ export class Image {
     imageData: Uint8ClampedArray;
 }
 
-class Tile {
-
-}
-
 
 class GM1Header {
     ImageCount: number;
@@ -46,10 +42,17 @@ class GM1EntryInfo {
     Tile: Tile;
 }
 
-export class GameTile{
+export class Tile {
+    header: GM1ImageHeader;
+    image: Uint8ClampedArray;
+    tile: Uint8ClampedArray;
+}
+
+export class GameTile {
     offsetX: number;
     offsetY: number;
     imageData: ImageData;
+    tiles: Tile[];
 }
 
 export class ImageLoader {
@@ -154,15 +157,14 @@ export class ImageLoader {
     }
 
 
-
-    loadImage(url: string): Observable< GameTile[]> {
+    loadImage(url: string): Observable<GameTile[]> {
         const oReq = new XMLHttpRequest();
         oReq.open("GET", url, true);
         // oReq.open("GET", "gm/tile_goods.gm1", true);
         oReq.responseType = "arraybuffer";
 
         console.log("Loading image...");
-        return new Observable< GameTile[]>(subscriber => {
+        return new Observable<GameTile[]>(subscriber => {
             oReq.onload = oEvent => {
                 const arrayBuffer = oReq.response; // Note: not oReq.responseText
                 if (arrayBuffer) {
@@ -287,20 +289,28 @@ export class ImageLoader {
                         canvas.width = width;
                         ctx.clearRect(0, 0, width, height);
 
+
+                        const tls: Tile[] = [];
                         //draw all entities of the collection
                         for (const imgNumber of imgNumbers) {
                             //draw the tile part
                             let x = imageHeaders[imgNumber].PositionX - left;
                             let y = imageHeaders[imgNumber].PositionY + imageHeaders[imgNumber].TilePositionY - top;
 
-                            CanvasUtil.putImageWithTransparency(ctx, new ImageData(tiles[imgNumber], 30, 16), x, y)
+                           // CanvasUtil.putImageWithTransparency(ctx, new ImageData(tiles[imgNumber], 30, 16), x, y)
+                            ctx.fillText(imgNumber + "", x, y);
                             //draw the image part
                             x = imageHeaders[imgNumber].PositionX + imageHeaders[imgNumber].HorizontalOffset - left;
                             y = imageHeaders[imgNumber].PositionY - top;
 
-                            CanvasUtil.putImageWithTransparency(ctx, new ImageData(images[imgNumber], imageHeaders[imgNumber].Width, imageHeaders[imgNumber].Height), x, y );
+                           // CanvasUtil.putImageWithTransparency(ctx, new ImageData(images[imgNumber], imageHeaders[imgNumber].Width, imageHeaders[imgNumber].Height), x, y);
                             //ctx.putImageData(, x, y, 0, 0, imageHeaders[imgNumber].DrawingBoxWdith, imageHeaders[imgNumber].Height);
 
+                            tls.push({
+                                image: images[imgNumber],
+                                tile: tiles[imgNumber],
+                                header: imageHeaders[imgNumber]
+                            })
 
                             //rect = image.Rect(x, y, x+int(collection[i].Header.DrawingBoxWdith), y+int(collection[i].Header.Height))
                             //draw.Draw(img, rect, collection[i].Image.data, image.ZP, draw.Over)
@@ -310,7 +320,8 @@ export class ImageLoader {
                         collImages.push({
                             imageData: ctx.getImageData(0, 0, width, height),
                             offsetX: imageHeaders[0].HorizontalOffset,
-                            offsetY: imageHeaders[0].TilePositionY
+                            offsetY: imageHeaders[0].TilePositionY,
+                            tiles: tls
                         });
 
                     }
@@ -319,12 +330,14 @@ export class ImageLoader {
                     canvas.height = 3000;
 
                     let lastCanvasX = 0;
-                    let lastCanvasY = 10;
+                    let lastCanvasY = 20;
                     let maxCanvasHeight = 0;
+                    let d = 0;
                     for (let img of collImages) {
                         ctx.putImageData(img.imageData, lastCanvasX, lastCanvasY);
                         ctx.rect(lastCanvasX - 5, lastCanvasY - 5, img.imageData.width + 5, img.imageData.height + 5);
                         ctx.stroke();
+                        ctx.fillText(d++ + "", lastCanvasX, lastCanvasY - 7);
                         lastCanvasX += img.imageData.width + 20;
                         maxCanvasHeight = Math.max(maxCanvasHeight, img.imageData.height);
                         if (lastCanvasX > 1000) {
@@ -335,6 +348,7 @@ export class ImageLoader {
                     }
 
                     subscriber.next(collImages);
+                    subscriber.complete();
                     document.body.appendChild(canvas);
 
                 }
