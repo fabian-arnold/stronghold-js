@@ -1,6 +1,5 @@
 import {Observable} from 'rxjs';
 // program.js
-import {load} from "webassembly";
 import {CanvasUtil} from "../util/canvas-util";
 
 
@@ -63,10 +62,7 @@ export class ImageLoader {
     static IMAGE_OFFSET = 88 + 5120;
 
     constructor() {
-        load("gm1parser.wasm")
-            .then(module => {
-                console.log("1 + 2 = " + module.exports.add(1, 2));
-            });
+
         console.log("Created image loader");
     }
 
