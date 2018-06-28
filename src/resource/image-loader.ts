@@ -1,6 +1,6 @@
 import {Observable} from 'rxjs';
+
 // program.js
-import {CanvasUtil} from "../util/canvas-util";
 
 
 export class Image {
@@ -50,15 +50,19 @@ export class Tile {
 export class GameTile {
     offsetX: number;
     offsetY: number;
-    imageData: ImageData;
     tiles: Tile[];
+}
+
+export class GM1Resource {
+    gameTiles: GameTile[];
+    path: string;
 }
 
 export class ImageLoader {
     static QUANTITY_OFFSET = 12;
     static DATA_TYPE_OFFSET = 20;
     static GM1TilePixelsPerLine = [2, 6, 10, 14, 18, 22, 26, 30, 30, 26, 22, 18, 14, 10, 6, 2];
-// Header + Palette
+    // Header + Palette
     static IMAGE_OFFSET = 88 + 5120;
 
     constructor() {
@@ -153,14 +157,14 @@ export class ImageLoader {
     }
 
 
-    loadImage(url: string): Observable<GameTile[]> {
+    loadImage(url: string): Observable<GM1Resource> {
         const oReq = new XMLHttpRequest();
         oReq.open("GET", url, true);
         // oReq.open("GET", "gm/tile_goods.gm1", true);
         oReq.responseType = "arraybuffer";
 
         console.log("Loading image...");
-        return new Observable<GameTile[]>(subscriber => {
+        return new Observable<GM1Resource>(subscriber => {
             oReq.onload = oEvent => {
                 const arrayBuffer = oReq.response; // Note: not oReq.responseText
                 if (arrayBuffer) {
@@ -229,9 +233,7 @@ export class ImageLoader {
 
                     }
 
-                    // create off-screen canvas element
-                    const canvas = document.createElement('canvas'),
-                        ctx = canvas.getContext('2d');
+
 
 
                     let i = 0;
@@ -254,67 +256,20 @@ export class ImageLoader {
 
                     }
 
-                    console.log(collections);
+
                     const collImages: GameTile[] = [];
                     for (const imgNumbers of collections) {
 
-                        //bounding box
-                        let top = Infinity;
-                        let left = Infinity;
-                        let bottom = 0;
-                        let right = 0;
-
-                        for (const imgNumber of imgNumbers) {
-                            //find bounds of the sub-images
-                            const x = imageHeaders[imgNumber].PositionX;
-                            const y = imageHeaders[imgNumber].PositionY;
-                            const w = imageHeaders[imgNumber].Width;
-                            const h = imageHeaders[imgNumber].Height;
-
-                            left = Math.min(left, x);
-                            top = Math.min(top, y);
-                            right = Math.max(right, x + w);
-                            bottom = Math.max(bottom, y + h);
-                        }
-                        //calculate the actual dimensions of the image
-                        const width = right - left;
-                        const height = bottom - top;
-
-                        //create canvas for image
-                        canvas.height = height;
-                        canvas.width = width;
-                        ctx.clearRect(0, 0, width, height);
-
-
                         const tls: Tile[] = [];
-                        //draw all entities of the collection
+
                         for (const imgNumber of imgNumbers) {
-                            //draw the tile part
-                            let x = imageHeaders[imgNumber].PositionX - left;
-                            let y = imageHeaders[imgNumber].PositionY + imageHeaders[imgNumber].TilePositionY - top;
-
-                           // CanvasUtil.putImageWithTransparency(ctx, new ImageData(tiles[imgNumber], 30, 16), x, y)
-                            ctx.fillText(imgNumber + "", x, y);
-                            //draw the image part
-                            x = imageHeaders[imgNumber].PositionX + imageHeaders[imgNumber].HorizontalOffset - left;
-                            y = imageHeaders[imgNumber].PositionY - top;
-
-                           // CanvasUtil.putImageWithTransparency(ctx, new ImageData(images[imgNumber], imageHeaders[imgNumber].Width, imageHeaders[imgNumber].Height), x, y);
-                            //ctx.putImageData(, x, y, 0, 0, imageHeaders[imgNumber].DrawingBoxWdith, imageHeaders[imgNumber].Height);
-
                             tls.push({
                                 image: images[imgNumber],
                                 tile: tiles[imgNumber],
                                 header: imageHeaders[imgNumber]
                             })
-
-                            //rect = image.Rect(x, y, x+int(collection[i].Header.DrawingBoxWdith), y+int(collection[i].Header.Height))
-                            //draw.Draw(img, rect, collection[i].Image.data, image.ZP, draw.Over)
-
-                            //Note: E.g. Buildings consist of tiles (foundation) and images (walls etc.)
                         }
                         collImages.push({
-                            imageData: ctx.getImageData(0, 0, width, height),
                             offsetX: imageHeaders[0].HorizontalOffset,
                             offsetY: imageHeaders[0].TilePositionY,
                             tiles: tls
@@ -322,35 +277,17 @@ export class ImageLoader {
 
                     }
 
-                    canvas.width = 1400;
-                    canvas.height = 3000;
 
-                    let lastCanvasX = 0;
-                    let lastCanvasY = 20;
-                    let maxCanvasHeight = 0;
-                    let d = 0;
-                    for (let img of collImages) {
-                        ctx.putImageData(img.imageData, lastCanvasX, lastCanvasY);
-                        ctx.rect(lastCanvasX - 5, lastCanvasY - 5, img.imageData.width + 5, img.imageData.height + 5);
-                        ctx.stroke();
-                        ctx.fillText(d++ + "", lastCanvasX, lastCanvasY - 7);
-                        lastCanvasX += img.imageData.width + 20;
-                        maxCanvasHeight = Math.max(maxCanvasHeight, img.imageData.height);
-                        if (lastCanvasX > 1000) {
-                            lastCanvasX = 10;
-                            lastCanvasY += maxCanvasHeight + 20;
-                            maxCanvasHeight = 0;
-                        }
-                    }
-
-                    subscriber.next(collImages);
+                    subscriber.next({
+                        gameTiles: collImages,
+                        path: url,
+                    });
                     subscriber.complete();
-                    document.body.appendChild(canvas);
 
                 }
 
 
-            }
+            };
 
             oReq.send(null);
         });
