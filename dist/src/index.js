@@ -3,9 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var engine_1 = require("./engine/engine");
 var image_loader_1 = require("./resource/image-loader");
 var resource_manager_1 = require("./resource/resource-manager");
-var Engine = engine_1.strongholdjs.Engine;
 var imageLoader = new image_loader_1.ImageLoader();
-var engine = new Engine();
+var engine = new engine_1.Engine();
 /*
     tile_goods.gm1: stock piles
     tile_land8:     stone lands

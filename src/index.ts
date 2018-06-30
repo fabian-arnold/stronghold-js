@@ -1,7 +1,7 @@
-import {strongholdjs} from "./engine/engine";
+import {Engine} from "./engine/engine";
 import {ImageLoader} from "./resource/image-loader";
 import {ResourceCollections, ResourceManager} from "./resource/resource-manager";
-import Engine = strongholdjs.Engine;
+
 
 const imageLoader: ImageLoader = new ImageLoader();
 const engine: Engine = new Engine();
