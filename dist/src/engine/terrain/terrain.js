@@ -8,48 +8,51 @@ var LevelTile = /** @class */ (function () {
     return LevelTile;
 }());
 var Chunk = /** @class */ (function () {
-    function Chunk(levelData, tiles, startX, startY, width, height) {
+    function Chunk(levelData, tiles, startI, startJ, countI, countJ) {
         this.levelData = levelData;
         this.tiles = tiles;
-        this.startX = startX;
-        this.startY = startY;
-        this.width = width;
-        this.height = height;
+        this.startI = startI;
+        this.startJ = startJ;
+        this.countI = countI;
+        this.countJ = countJ;
         this.dirty = true;
         this.cacheCanvas = document.createElement("canvas");
-        this.cacheCanvas.width = width * 2 * Chunk.tileSize + 2 * Chunk.tileSize;
-        this.cacheCanvas.height = height * 2 * Chunk.tileSize + 2 * Chunk.tileSize;
+        this.cacheCanvas.width = countI * 2 * Terrain.tileSize + 2 * Terrain.tileSize;
+        this.cacheCanvas.height = countJ * Terrain.tileSize + Terrain.tileSize;
         this.cacheCtx = this.cacheCanvas.getContext("2d");
     }
     Chunk.pointToCoord = function (point) {
         return {
-            x: ((point.y % 2) * Chunk.tileSize) + (point.x * 2 * Chunk.tileSize),
-            y: point.y * Chunk.tileSize
+            x: ((point.y % 2) * Terrain.tileSize) + (point.x * 2 * Terrain.tileSize),
+            y: point.y * Terrain.tileSize
         };
     };
     Chunk.prototype.render = function (ctx) {
         if (this.dirty) {
             this.updateChunk();
         }
-        ctx.drawImage(this.cacheCanvas, this.startX * 2 * Chunk.tileSize, this.startY * Chunk.tileSize);
+        ctx.drawImage(this.cacheCanvas, this.startI * 2 * Terrain.tileSize, this.startJ * Terrain.tileSize);
     };
     Chunk.prototype.markDirty = function () {
         this.dirty = true;
     };
     Chunk.prototype.updateChunk = function () {
-        for (var x = 0; x < this.width; x++) {
-            for (var y = 0; y < this.height; y++) {
-                var tileId = this.levelData[this.startX + x][this.startY + y].tileID;
-                this.drawTile(tileId, x, y);
+        for (var i = 0; i < this.countI; i++) {
+            for (var j = 0; j < this.countJ; j++) {
+                var tileId = this.levelData[this.startI + i][this.startJ + j].tileID;
+                this.drawTile(tileId, i, j);
             }
         }
-        for (var x = 0; x < this.width; x++) {
-            for (var y = 0; y < this.height; y++) {
-                var tileId = this.levelData[this.startX + x][this.startY + y].tileID;
-                this.drawImage(tileId, x, y);
+        for (var i = 0; i < this.countI; i++) {
+            for (var j = 0; j < this.countJ; j++) {
+                var tileId = this.levelData[this.startI + i][this.startJ + j].tileID;
+                this.drawImage(tileId, i, j);
             }
         }
         this.dirty = false;
+        this.cacheCtx.strokeStyle = "red";
+        this.cacheCtx.rect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height);
+        this.cacheCtx.stroke();
     };
     Chunk.prototype.drawTile = function (type, i, j) {
         var tiles = this.tiles[type];
@@ -78,7 +81,6 @@ var Chunk = /** @class */ (function () {
             canvas_util_1.CanvasUtil.putImageWithTransparency(this.cacheCtx, new ImageData(tile.image, tile.header.Width, tile.header.Height), isoPos.x, isoPos.y);
         }
     };
-    Chunk.tileSize = 12;
     return Chunk;
 }());
 var Terrain = /** @class */ (function () {
@@ -88,15 +90,14 @@ var Terrain = /** @class */ (function () {
         this.tiles = tiles;
         this.width = width;
         this.height = height;
-        this.chunkSize = 5;
         this.chunkTileSize = 20;
         this.levelData = null;
         this.chunks = [];
         if (width % this.chunkTileSize != 0 || height % this.chunkTileSize != 0) {
             throw new Error("Invalid chunk size.\n width / height % this.chunkTileSize must be 0");
         }
-        this.chunkCountX = (this.width / this.chunkTileSize);
-        this.chunkCountY = (this.height / this.chunkTileSize);
+        this.chunkCountI = (this.width / this.chunkTileSize);
+        this.chunkCountJ = (this.height / this.chunkTileSize);
         // Initialize Level Data
         if (this.levelData == null) {
             this.levelData = [];
@@ -109,27 +110,33 @@ var Terrain = /** @class */ (function () {
             }
         }
         // Create Chunks
-        for (var x = 0; x < this.chunkCountX; x++) {
-            this.chunks[x] = [];
-            for (var y = 0; y < this.chunkCountY; y++) {
-                this.chunks[x][y] = new Chunk(this.levelData, this.tiles, x * 20, y * 20, 20, 20);
+        for (var i = 0; i < this.chunkCountI; i++) {
+            this.chunks[i] = [];
+            for (var j = 0; j < this.chunkCountJ; j++) {
+                this.chunks[i][j] = new Chunk(this.levelData, this.tiles, i * this.chunkTileSize, j * this.chunkTileSize, this.chunkTileSize, this.chunkTileSize);
             }
         }
     }
+    Terrain.prototype.setTileId = function (i, j, tileId) {
+        this.levelData[i][j].tileID = tileId;
+        this.chunks[Math.floor(i / this.chunkTileSize)][Math.floor(j / this.chunkTileSize)].markDirty();
+    };
+    Terrain.prototype.getTileId = function (i, j) {
+        return this.levelData[i][j].tileID;
+    };
     Terrain.prototype.render = function () {
         // Half tile size offset value
-        var startX = Math.max(Math.floor((this.camera.x - Chunk.tileSize) / (this.chunkTileSize * Chunk.tileSize * 2)), 0);
-        var startY = Math.max(Math.floor((this.camera.y - Chunk.tileSize / 2) / (this.chunkTileSize * Chunk.tileSize)), 0);
-        var endX = Math.min(Math.ceil((this.camera.x + this.ctx.canvas.width) / (this.chunkTileSize * Chunk.tileSize * 2)), this.chunkCountX);
-        var endY = Math.min(Math.ceil((this.camera.y + this.ctx.canvas.height) / (this.chunkTileSize * Chunk.tileSize)), this.chunkCountY);
-        console.log("Start", startY);
-        console.log("End", endY);
-        for (var x = startX; x < endX; x++) {
-            for (var y = startY; y < endY; y++) {
+        var startI = Math.max(Math.floor((this.camera.x - Terrain.tileSize) / (this.chunkTileSize * Terrain.tileSize * 2)), 0);
+        var startJ = Math.max(Math.floor((this.camera.y - Terrain.tileSize / 2) / (this.chunkTileSize * Terrain.tileSize)), 0);
+        var endI = Math.min(Math.ceil((this.camera.x + this.ctx.canvas.width) / (this.chunkTileSize * Terrain.tileSize * 2)), this.chunkCountI);
+        var endJ = Math.min(Math.ceil((this.camera.y + this.ctx.canvas.height) / (this.chunkTileSize * Terrain.tileSize)), this.chunkCountJ);
+        for (var x = startI; x < endI; x++) {
+            for (var y = startJ; y < endJ; y++) {
                 this.chunks[x][y].render(this.ctx);
             }
         }
     };
+    Terrain.tileSize = 12;
     return Terrain;
 }());
 exports.Terrain = Terrain;

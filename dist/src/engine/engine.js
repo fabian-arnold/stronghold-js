@@ -10,6 +10,14 @@ var Point = /** @class */ (function () {
     return Point;
 }());
 exports.Point = Point;
+var ChunkPos = /** @class */ (function () {
+    function ChunkPos(i, j) {
+        this.i = i;
+        this.j = j;
+    }
+    return ChunkPos;
+}());
+exports.ChunkPos = ChunkPos;
 var Engine = /** @class */ (function () {
     function Engine() {
         var _this = this;
@@ -52,29 +60,15 @@ var Engine = /** @class */ (function () {
         };
         document.body.appendChild(this.gameContainer);
     }
-    Engine.isoTo2D = function (pt) {
-        var tempPt = new Point(0, 0);
-        tempPt.x = (2 * pt.y + pt.x) / 2;
-        tempPt.y = (2 * pt.y - pt.x) / 2;
-        return (tempPt);
-    };
-    Engine.twoDToIso = function (pt) {
-        var tempPt = new Point(0, 0);
-        tempPt.x = pt.x - pt.y;
-        tempPt.y = (pt.x + pt.y) / 2;
-        return (tempPt);
-    };
-    Engine.getTileCoordinates = function (pt, tileHeight) {
-        var tempPt = new Point(0, 0);
-        tempPt.x = Math.floor(pt.x / tileHeight);
-        tempPt.y = Math.floor(pt.y / tileHeight);
-        return (tempPt);
-    };
-    Engine.get2dFromTileCoordinates = function (pt, tileHeight) {
-        var tempPt = new Point(0, 0);
-        tempPt.x = pt.x * tileHeight;
-        tempPt.y = pt.y * tileHeight;
-        return (tempPt);
+    Engine.chunkForPixel = function (x, y) {
+        var xMod = x % (terrain_1.Terrain.tileSize * 2);
+        var yMod = y % terrain_1.Terrain.tileSize;
+        var xOff = (yMod / terrain_1.Terrain.tileSize) * (terrain_1.Terrain.tileSize);
+        var yOff = (xMod / (terrain_1.Terrain.tileSize * 2)) * terrain_1.Terrain.tileSize * 0.5;
+        return {
+            i: Math.floor((x - xOff) / (terrain_1.Terrain.tileSize * 2)),
+            j: Math.floor((y - yOff) / (terrain_1.Terrain.tileSize))
+        };
     };
     Engine.prototype.addTile = function (tile) {
         this.tiles.push(tile);
@@ -84,17 +78,14 @@ var Engine = /** @class */ (function () {
     };
     Engine.prototype.click = function (x, y) {
         var pos = {
-            x: x - this.camera.getPos().x,
-            y: y - this.camera.getPos().x
+            x: x + this.camera.getPos().x,
+            y: y + this.camera.getPos().y
         };
-        var cord = Engine.getTileCoordinates(Engine.isoTo2D(pos), this.tileWidth);
-        //
-        // const nextTileId = this.levelData[cord.x][cord.y].tileID + 1;
-        // const nextTileCount = this.tiles[nextTileId].length;
-        //
-        // this.levelData[cord.x][cord.y].tileID = nextTileId;
-        // this.levelData[cord.x][cord.y].height = 1;
-        // this.levelData[cord.x][cord.y].dirty = true;
+        var cord = Engine.chunkForPixel(pos.x, pos.y);
+        console.log("Click coord", cord);
+        var nextTileId = (this.terrain.getTileId(cord.i, cord.j) + 1) % 3;
+        //     const nextTileCount = this.tiles[nextTileId].length;
+        this.terrain.setTileId(cord.i, cord.j, nextTileId);
     };
     Engine.prototype.render = function () {
         window.requestAnimationFrame(this.render.bind(this));

@@ -14,7 +14,7 @@ resourceManager.loadResources().subscribe(function (_) {
     resourceManager.addDebugGUI();
     engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.STONELANDS, 0).tiles);
     engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.STONELANDS, 1).tiles);
-    engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.STONELANDS, 2).tiles);
+    engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.CASTLES, 7).tiles);
     engine.start();
 });
 //# sourceMappingURL=index.js.map

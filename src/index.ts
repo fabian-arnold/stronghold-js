@@ -18,7 +18,7 @@ resourceManager.loadResources().subscribe(_ => {
 
     engine.addTile(resourceManager.getGameTile(ResourceCollections.STONELANDS, 0).tiles);
     engine.addTile(resourceManager.getGameTile(ResourceCollections.STONELANDS, 1).tiles);
-    engine.addTile(resourceManager.getGameTile(ResourceCollections.STONELANDS, 2).tiles);
+    engine.addTile(resourceManager.getGameTile(ResourceCollections.CASTLES, 7).tiles);
     engine.start();
 });
 

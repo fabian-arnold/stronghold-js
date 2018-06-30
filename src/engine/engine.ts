@@ -8,6 +8,12 @@ export class Point {
     }
 }
 
+export class ChunkPos {
+    constructor(public i: number, public j: number) {
+
+    }
+}
+
 
 export class Engine {
     public camera: Camera;
@@ -67,35 +73,18 @@ export class Engine {
         document.body.appendChild(this.gameContainer);
     }
 
-    public static isoTo2D(pt: Point): Point {
-        const tempPt: Point = new Point(0, 0);
-        tempPt.x = (2 * pt.y + pt.x) / 2;
-        tempPt.y = (2 * pt.y - pt.x) / 2;
-        return (tempPt);
+    public static chunkForPixel(x: number, y: number): ChunkPos {
+        const xMod = x % (Terrain.tileSize * 2);
+        const yMod = y % Terrain.tileSize;
+
+        const xOff = (yMod / Terrain.tileSize) * (Terrain.tileSize);
+        const yOff = (xMod / (Terrain.tileSize * 2)) * Terrain.tileSize * 0.5;
+        return {
+            i: Math.floor((x - xOff) / (Terrain.tileSize * 2)),
+            j: Math.floor((y - yOff) / (Terrain.tileSize))
+        }
     }
 
-    public static twoDToIso(pt: Point): Point {
-        const tempPt: Point = new Point(0, 0);
-        tempPt.x = pt.x - pt.y;
-        tempPt.y = (pt.x + pt.y) / 2;
-        return (tempPt);
-    }
-
-    public static getTileCoordinates(pt: Point, tileHeight: number): Point {
-        const tempPt: Point = new Point(0, 0);
-        tempPt.x = Math.floor(pt.x / tileHeight);
-        tempPt.y = Math.floor(pt.y / tileHeight);
-
-        return (tempPt);
-    }
-
-    public static get2dFromTileCoordinates(pt: Point, tileHeight: number): Point {
-        const tempPt: Point = new Point(0, 0);
-        tempPt.x = pt.x * tileHeight;
-        tempPt.y = pt.y * tileHeight;
-
-        return (tempPt);
-    }
 
     public addTile(tile: Tile[]) {
         this.tiles.push(tile);
@@ -109,18 +98,17 @@ export class Engine {
 
     private click(x: number, y: number) {
         const pos: Point = {
-            x: x - this.camera.getPos().x,
-            y: y - this.camera.getPos().x
+            x: x + this.camera.getPos().x,
+            y: y + this.camera.getPos().y
         };
 
-        const cord = Engine.getTileCoordinates(Engine.isoTo2D(pos), this.tileWidth);
-        //
-        // const nextTileId = this.levelData[cord.x][cord.y].tileID + 1;
-        // const nextTileCount = this.tiles[nextTileId].length;
-        //
-        // this.levelData[cord.x][cord.y].tileID = nextTileId;
-        // this.levelData[cord.x][cord.y].height = 1;
-        // this.levelData[cord.x][cord.y].dirty = true;
+
+        const cord = Engine.chunkForPixel(pos.x, pos.y);
+        console.log("Click coord", cord);
+        const nextTileId = (this.terrain.getTileId(cord.i, cord.j) + 1) % 3;
+        //     const nextTileCount = this.tiles[nextTileId].length;
+
+        this.terrain.setTileId(cord.i, cord.j, nextTileId);
 
 
     }
