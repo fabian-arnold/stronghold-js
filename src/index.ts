@@ -16,9 +16,9 @@ const resourceManager = new ResourceManager();
 resourceManager.loadResources().subscribe(_ => {
     resourceManager.addDebugGUI();
 
-    engine.addTile(resourceManager.getGameTile(ResourceCollections.STONELANDS, 0).tiles);
-    engine.addTile(resourceManager.getGameTile(ResourceCollections.STONELANDS, 1).tiles);
-    engine.addTile(resourceManager.getGameTile(ResourceCollections.CASTLES, 7).tiles);
+    engine.addTile(resourceManager.getGameTile(ResourceCollections.TERRAIN_STONELANDS, 0).tiles);
+    engine.addTile(resourceManager.getGameTile(ResourceCollections.TERRAIN_STONELANDS, 1).tiles);
+    engine.addTile(resourceManager.getGameTile(ResourceCollections.BUILDINGS_CASTLES, 7).tiles);
     engine.start();
 });
 

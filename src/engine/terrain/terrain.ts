@@ -1,4 +1,4 @@
-import {Image, Tile} from "../../resource/image-loader";
+import {Image, GM1Tile} from "../../resource/image-loader";
 import {CanvasUtil} from "../../util/canvas-util";
 import {Point} from "../engine";
 import {Camera} from "../camera";
@@ -20,7 +20,7 @@ class Chunk {
     private cacheCanvas: HTMLCanvasElement;
     private cacheCtx: CanvasRenderingContext2D;
 
-    constructor(private levelData: LevelTile[][], private tiles: Tile[][], private startI: number, private startJ: number, private countI: number, private countJ: number) {
+    constructor(private levelData: LevelTile[][], private tiles: GM1Tile[][], private startI: number, private startJ: number, private countI: number, private countJ: number) {
 
         this.cacheCanvas = document.createElement("canvas");
         this.cacheCanvas.width = countI * 2 * Terrain.tileSize + 2 * Terrain.tileSize;
@@ -119,7 +119,7 @@ export class Terrain {
     private chunkCountI: number;
     private chunkCountJ: number;
 
-    constructor(private ctx: CanvasRenderingContext2D, private camera: Camera, private tiles: Tile[][], private width: number, private height: number) {
+    constructor(private ctx: CanvasRenderingContext2D, private camera: Camera, private tiles: GM1Tile[][], private width: number, private height: number) {
 
         if (width % this.chunkTileSize != 0 || height % this.chunkTileSize != 0) {
             throw new Error("Invalid chunk size.\n width / height % this.chunkTileSize must be 0")

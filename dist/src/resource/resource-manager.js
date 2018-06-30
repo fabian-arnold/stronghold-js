@@ -6,19 +6,25 @@ var image_loader_1 = require("./image-loader");
 var canvas_util_1 = require("../util/canvas-util");
 var ResourceCollections;
 (function (ResourceCollections) {
-    ResourceCollections["CASTLES"] = "gm/tile_castle.gm1";
-    ResourceCollections["GRASSLANDS"] = "gm/tile_land_macros.gm1";
-    ResourceCollections["STONELANDS"] = "gm/tile_land8.gm1";
-    ResourceCollections["STOCKPILES"] = "gm/tile_goods.gm1";
+    ResourceCollections["BUILDINGS_CASTLES"] = "gm/tile_castle.gm1";
+    ResourceCollections["TERRAIN_GRASSLANDS"] = "gm/tile_land_macros.gm1";
+    ResourceCollections["TERRAIN_STONELANDS"] = "gm/tile_land8.gm1";
+    ResourceCollections["BUILDINGS_STOCKPILES"] = "gm/tile_goods.gm1";
+    ResourceCollections["INTERFACE_BUTTONS"] = "gm/interface_buttons.gm1";
+    ResourceCollections["INTERFACE_ARMY"] = "gm/interface_army.gm1";
+    ResourceCollections["INTERFACE_ICONS2"] = "gm/interface_icons2.gm1";
+    ResourceCollections["INTERFACE_ICONS3"] = "gm/interface_icons3.gm1";
+    ResourceCollections["INTERFACE_RUINS"] = "gm/interface_ruins.gm1";
+    ResourceCollections["INTERFACE_SLIDER_BAR"] = "gm/interface_slider_bar.gm1";
 })(ResourceCollections = exports.ResourceCollections || (exports.ResourceCollections = {}));
 var ResourceManager = /** @class */ (function () {
     function ResourceManager() {
-        this.files = [ResourceCollections.CASTLES,
-            ResourceCollections.GRASSLANDS,
-            ResourceCollections.STONELANDS,
-            ResourceCollections.STOCKPILES];
+        this.files = [];
         this.resources = {};
         this.imageLoader = new image_loader_1.ImageLoader();
+        for (var res in ResourceCollections) {
+            this.files.push(ResourceCollections[res]);
+        }
     }
     ResourceManager.prototype.loadResources = function () {
         var _this = this;
@@ -71,8 +77,9 @@ var ResourceManager = /** @class */ (function () {
         canvas.height = 3000;
         var lastCanvasX = 0;
         var lastCanvasY = 20;
-        var maxCanvasHeight = 0;
+        var maxHeightInRow = 0;
         var d = 0;
+        // Draw tiles in resource
         for (var _i = 0, _a = resource.gameTiles; _i < _a.length; _i++) {
             var gameTiles = _a[_i];
             //bounding box
@@ -110,11 +117,26 @@ var ResourceManager = /** @class */ (function () {
                 canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.image, tile.header.Width, tile.header.Height), x + lastCanvasX, y + lastCanvasY);
             }
             lastCanvasX += width + 20;
-            maxCanvasHeight = Math.max(maxCanvasHeight, height);
+            maxHeightInRow = Math.max(maxHeightInRow, height);
             if (lastCanvasX > 1000) {
                 lastCanvasX = 10;
-                lastCanvasY += maxCanvasHeight + 20;
-                maxCanvasHeight = 0;
+                lastCanvasY += maxHeightInRow + 20;
+                maxHeightInRow = 0;
+            }
+        }
+        lastCanvasX = 0;
+        // Draw images in resource
+        for (var _f = 0, _g = resource.images; _f < _g.length; _f++) {
+            var image = _g[_f];
+            canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(image.image, image.header.Width, image.header.Height), lastCanvasX, lastCanvasY);
+            lastCanvasX += image.header.Width + 20;
+            console.log(image.header);
+            console.log("LCX", lastCanvasX);
+            maxHeightInRow = Math.max(maxHeightInRow, image.header.Height);
+            if (lastCanvasX > 1000) {
+                lastCanvasX = 10;
+                lastCanvasY += maxHeightInRow + 20;
+                maxHeightInRow = 0;
             }
         }
         return canvas;

@@ -1,4 +1,4 @@
-import {GameTile, Tile} from "../resource/image-loader";
+import {GameTile, GM1Tile} from "../resource/image-loader";
 import {Terrain} from "./terrain/terrain";
 import {Camera} from "./camera";
 
@@ -22,7 +22,7 @@ export class Engine {
     private terrainCtx: CanvasRenderingContext2D;
     private gameContainer: HTMLDivElement;
     private terrain: Terrain;
-    private tiles: Tile[][] = [];
+    private tiles: GM1Tile[][] = [];
     private buildings: GameTile[] = [];
     private lastTime = (new Date()).getTime();
     private currentTime = 0;
@@ -86,7 +86,7 @@ export class Engine {
     }
 
 
-    public addTile(tile: Tile[]) {
+    public addTile(tile: GM1Tile[]) {
         this.tiles.push(tile);
 
 

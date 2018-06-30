@@ -38,23 +38,29 @@ class GM1EntryInfo {
     Size: number;
     Header: number;
     Image: Image;
-    Tile: Tile;
+    Tile: GM1Tile;
 }
 
-export class Tile {
+export class GM1Tile {
     header: GM1ImageHeader;
     image: Uint8ClampedArray;
     tile: Uint8ClampedArray;
 }
 
+export class GM1Image {
+    header: GM1ImageHeader;
+    image: Uint8ClampedArray;
+}
+
 export class GameTile {
     offsetX: number;
     offsetY: number;
-    tiles: Tile[];
+    tiles: GM1Tile[];
 }
 
 export class GM1Resource {
     gameTiles: GameTile[];
+    images: GM1Image[];
     path: string;
 }
 
@@ -77,7 +83,7 @@ export class ImageLoader {
                 const y = c_y;
                 const x = 15 - ImageLoader.GM1TilePixelsPerLine[y] / 2 + c_x;
 
-                // console.log("Decode Tile: " + x + " " + y);
+                // console.log("Decode GM1Tile: " + x + " " + y);
                 const pos = (y * 30 + x) * 4;
                 const color = tileData.getUint16(readPos, true);
                 this.writeColor(data, pos, color);
@@ -208,33 +214,42 @@ export class ImageLoader {
                     //43512 // 43512
                     console.log("endOfHeaders", imageData.byteOffset);
                     // Read image
-                    const images: Uint8ClampedArray[] = [];
-                    const tiles: Uint8ClampedArray[] = [];
+                    const tileImages: Uint8ClampedArray[] = [];
+                    const tileTiles: Uint8ClampedArray[] = [];
+                    const imageImages: GM1Image[] = [];
 
                     for (let imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
 
                         switch (header.DataType) {
-                            case 3:
+                            case 3: {
+                                // TILE + TGX Image
                                 const imgHeader = imageHeaders[imageNumber];
 
                                 const tgxTile = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber], 512);
                                 const tileBuffer = new Uint8ClampedArray(30 * 16 * 4);
                                 this.decodeTile(tgxTile, tileBuffer);
-                                tiles.push(tileBuffer);
+                                tileTiles.push(tileBuffer);
 
                                 const tgxImage = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber] + 512, imageSizes[imageNumber] - 512);
                                 const imgBuffer = new Uint8ClampedArray(imgHeader.Width * imgHeader.Height * 4);
                                 this.decodeTGX(tgxImage, imgHeader, imgBuffer);
-                                images.push(imgBuffer);
+                                tileImages.push(imgBuffer);
                                 break;
+                            }
+                            case 1: {
+                                // TGX Image
+                                const imgHeader = imageHeaders[imageNumber];
+                                const tgxImage = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber], imageSizes[imageNumber]);
+                                const imgBuffer = new Uint8ClampedArray(imgHeader.Width * imgHeader.Height * 4);
+                                this.decodeTGX(tgxImage, imgHeader, imgBuffer);
+                                imageImages.push({image: imgBuffer, header: imgHeader});
+                                break;
+                            }
                             default:
                                 console.error("Not implemented data type: " + header.DataType);
                         }
 
                     }
-
-
-
 
                     let i = 0;
                     const collections: number[][] = [];
@@ -260,12 +275,12 @@ export class ImageLoader {
                     const collImages: GameTile[] = [];
                     for (const imgNumbers of collections) {
 
-                        const tls: Tile[] = [];
+                        const tls: GM1Tile[] = [];
 
                         for (const imgNumber of imgNumbers) {
                             tls.push({
-                                image: images[imgNumber],
-                                tile: tiles[imgNumber],
+                                image: tileImages[imgNumber],
+                                tile: tileTiles[imgNumber],
                                 header: imageHeaders[imgNumber]
                             })
                         }
@@ -280,6 +295,7 @@ export class ImageLoader {
 
                     subscriber.next({
                         gameTiles: collImages,
+                        images: imageImages,
                         path: url,
                     });
                     subscriber.complete();

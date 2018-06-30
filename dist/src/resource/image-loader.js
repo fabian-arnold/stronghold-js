@@ -23,12 +23,18 @@ var GM1EntryInfo = /** @class */ (function () {
     }
     return GM1EntryInfo;
 }());
-var Tile = /** @class */ (function () {
-    function Tile() {
+var GM1Tile = /** @class */ (function () {
+    function GM1Tile() {
     }
-    return Tile;
+    return GM1Tile;
 }());
-exports.Tile = Tile;
+exports.GM1Tile = GM1Tile;
+var GM1Image = /** @class */ (function () {
+    function GM1Image() {
+    }
+    return GM1Image;
+}());
+exports.GM1Image = GM1Image;
 var GameTile = /** @class */ (function () {
     function GameTile() {
     }
@@ -51,7 +57,7 @@ var ImageLoader = /** @class */ (function () {
             for (var c_x = 0; c_x < ImageLoader.GM1TilePixelsPerLine[c_y]; c_x++) {
                 var y = c_y;
                 var x = 15 - ImageLoader.GM1TilePixelsPerLine[y] / 2 + c_x;
-                // console.log("Decode Tile: " + x + " " + y);
+                // console.log("Decode GM1Tile: " + x + " " + y);
                 var pos = (y * 30 + x) * 4;
                 var color = tileData.getUint16(readPos, true);
                 this.writeColor(data, pos, color);
@@ -163,21 +169,33 @@ var ImageLoader = /** @class */ (function () {
                     //43512 // 43512
                     console.log("endOfHeaders", imageData.byteOffset);
                     // Read image
-                    var images = [];
-                    var tiles = [];
+                    var tileImages = [];
+                    var tileTiles = [];
+                    var imageImages = [];
                     for (var imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
                         switch (header.DataType) {
-                            case 3:
+                            case 3: {
+                                // TILE + TGX Image
                                 var imgHeader = imageHeaders[imageNumber];
                                 var tgxTile = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber], 512);
                                 var tileBuffer = new Uint8ClampedArray(30 * 16 * 4);
                                 _this.decodeTile(tgxTile, tileBuffer);
-                                tiles.push(tileBuffer);
+                                tileTiles.push(tileBuffer);
                                 var tgxImage = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber] + 512, imageSizes[imageNumber] - 512);
                                 var imgBuffer = new Uint8ClampedArray(imgHeader.Width * imgHeader.Height * 4);
                                 _this.decodeTGX(tgxImage, imgHeader, imgBuffer);
-                                images.push(imgBuffer);
+                                tileImages.push(imgBuffer);
                                 break;
+                            }
+                            case 1: {
+                                // TGX Image
+                                var imgHeader = imageHeaders[imageNumber];
+                                var tgxImage = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber], imageSizes[imageNumber]);
+                                var imgBuffer = new Uint8ClampedArray(imgHeader.Width * imgHeader.Height * 4);
+                                _this.decodeTGX(tgxImage, imgHeader, imgBuffer);
+                                imageImages.push({ image: imgBuffer, header: imgHeader });
+                                break;
+                            }
                             default:
                                 console.error("Not implemented data type: " + header.DataType);
                         }
@@ -207,8 +225,8 @@ var ImageLoader = /** @class */ (function () {
                         for (var _a = 0, imgNumbers_1 = imgNumbers; _a < imgNumbers_1.length; _a++) {
                             var imgNumber = imgNumbers_1[_a];
                             tls.push({
-                                image: images[imgNumber],
-                                tile: tiles[imgNumber],
+                                image: tileImages[imgNumber],
+                                tile: tileTiles[imgNumber],
                                 header: imageHeaders[imgNumber]
                             });
                         }
@@ -220,6 +238,7 @@ var ImageLoader = /** @class */ (function () {
                     }
                     subscriber.next({
                         gameTiles: collImages,
+                        images: imageImages,
                         path: url,
                     });
                     subscriber.complete();

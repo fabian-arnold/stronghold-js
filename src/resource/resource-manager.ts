@@ -5,28 +5,31 @@ import {IHash} from "../util/hash-maps";
 import {CanvasUtil} from "../util/canvas-util";
 
 export enum ResourceCollections {
-    CASTLES = "gm/tile_castle.gm1",
-    GRASSLANDS = "gm/tile_land_macros.gm1",
-    STONELANDS = "gm/tile_land8.gm1",
-    STOCKPILES = "gm/tile_goods.gm1",
+    BUILDINGS_CASTLES = "gm/tile_castle.gm1",
+    TERRAIN_GRASSLANDS = "gm/tile_land_macros.gm1",
+    TERRAIN_STONELANDS = "gm/tile_land8.gm1",
+    BUILDINGS_STOCKPILES = "gm/tile_goods.gm1",
+    INTERFACE_BUTTONS = "gm/interface_buttons.gm1",
+    INTERFACE_ARMY = "gm/interface_army.gm1",
+    INTERFACE_ICONS2 = "gm/interface_icons2.gm1",
+    INTERFACE_ICONS3 = "gm/interface_icons3.gm1",
+    INTERFACE_RUINS = "gm/interface_ruins.gm1",
+    INTERFACE_SLIDER_BAR = "gm/interface_slider_bar.gm1",
 }
 
 
 export class ResourceManager {
 
-    private files: string[] =
-        [ResourceCollections.CASTLES,
-            ResourceCollections.GRASSLANDS,
-            ResourceCollections.STONELANDS,
-            ResourceCollections.STOCKPILES];
-
+    private files: string[] = [];
     private imageLoader: ImageLoader;
+    private resources: IHash<GM1Resource> = {};
 
     constructor() {
         this.imageLoader = new ImageLoader();
+        for (let res in ResourceCollections) {
+            this.files.push(ResourceCollections[res]);
+        }
     }
-
-    private resources: IHash<GM1Resource> = {};
 
     public loadResources(): Observable<void> {
         return new Observable<void>(subscriber => {
@@ -89,8 +92,9 @@ export class ResourceManager {
 
         let lastCanvasX = 0;
         let lastCanvasY = 20;
-        let maxCanvasHeight = 0;
+        let maxHeightInRow = 0;
         let d = 0;
+        // Draw tiles in resource
         for (const gameTiles of resource.gameTiles) {
 
             //bounding box
@@ -133,11 +137,27 @@ export class ResourceManager {
             }
 
             lastCanvasX += width + 20;
-            maxCanvasHeight = Math.max(maxCanvasHeight, height);
+            maxHeightInRow = Math.max(maxHeightInRow, height);
             if (lastCanvasX > 1000) {
                 lastCanvasX = 10;
-                lastCanvasY += maxCanvasHeight + 20;
-                maxCanvasHeight = 0;
+                lastCanvasY += maxHeightInRow + 20;
+                maxHeightInRow = 0;
+            }
+        }
+
+        lastCanvasX = 0;
+
+        // Draw images in resource
+        for (let image of resource.images) {
+            CanvasUtil.putImageWithTransparency(ctx, new ImageData(image.image, image.header.Width, image.header.Height), lastCanvasX, lastCanvasY);
+            lastCanvasX += image.header.Width + 20;
+            console.log(image.header);
+            console.log("LCX", lastCanvasX);
+            maxHeightInRow = Math.max(maxHeightInRow, image.header.Height);
+            if (lastCanvasX > 1000) {
+                lastCanvasX = 10;
+                lastCanvasY += maxHeightInRow + 20;
+                maxHeightInRow = 0;
             }
         }
 
