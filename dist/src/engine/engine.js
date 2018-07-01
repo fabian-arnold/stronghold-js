@@ -22,7 +22,6 @@ var ChunkPos = /** @class */ (function () {
 exports.ChunkPos = ChunkPos;
 var Engine = /** @class */ (function () {
     function Engine(resourceManager) {
-        var _this = this;
         this.resourceManager = resourceManager;
         this.movementSpeed = 900;
         this.tiles = [];
@@ -67,23 +66,40 @@ var Engine = /** @class */ (function () {
         this.gameContainer.style.width = this.terrainCanvas.width + "px";
         this.gameContainer.style.position = "relative";
         this._gameContainer.appendChild(this.terrainCanvas);
-        this.input = new input_1.Input();
-        this.input.register();
+        this._input = new input_1.Input();
+        this._input.register(this.terrainCanvas);
         this.camera = new camera_1.Camera();
         this.camera.setPos(500, 100);
-        this.terrain = new terrain_1.Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
-        this.gameObjects.push(this.terrain);
-        this.gameObjects.push(this.input);
+        this._terrain = new terrain_1.Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
+        this.gameObjects.push(this._terrain);
+        this.gameObjects.push(this._input);
         this.gameObjects.push(new gui_1.Gui());
-        this.terrainCanvas.onmousedown = function (event) {
-            var rect = _this.terrainCanvas.getBoundingClientRect();
-            _this.click(event.clientX - rect.left, event.clientY - rect.top);
-        };
         document.body.appendChild(this._gameContainer);
     }
+    Object.defineProperty(Engine.prototype, "terrain", {
+        get: function () {
+            return this._terrain;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Engine.prototype, "input", {
+        get: function () {
+            return this._input;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Engine.prototype, "gameContainer", {
         get: function () {
             return this._gameContainer;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Engine.prototype, "gameWidth", {
+        get: function () {
+            return this.terrainCanvas.width;
         },
         enumerable: true,
         configurable: true
@@ -98,13 +114,6 @@ var Engine = /** @class */ (function () {
             j: Math.floor((y - yOff) / (terrain_1.Terrain.tileSize))
         };
     };
-    Object.defineProperty(Engine.prototype, "gameWidth", {
-        get: function () {
-            return this.terrainCanvas.width;
-        },
-        enumerable: true,
-        configurable: true
-    });
     Engine.prototype.init = function () {
         for (var _i = 0, _a = this.gameObjects; _i < _a.length; _i++) {
             var go = _a[_i];
@@ -126,15 +135,12 @@ var Engine = /** @class */ (function () {
         window.requestAnimationFrame(this.render.bind(this));
     };
     Engine.prototype.click = function (x, y) {
-        var pos = {
-            x: x + this.camera.getPos().x,
-            y: y + this.camera.getPos().y
-        };
-        var cord = Engine.chunkForPixel(pos.x, pos.y);
-        console.log("Click coord", cord);
-        var nextTileId = (this.terrain.getTileId(cord.i, cord.j) + 1) % 3;
-        //     const nextTileCount = this.tiles[nextTileId].length;
-        this.terrain.setTileId(cord.i, cord.j, nextTileId);
+        //
+        // console.log("Click coord", cord);
+        // const nextTileId = (this.terrain.getTileId(cord.i, cord.j) + 1) % 3;
+        // //     const nextTileCount = this.tiles[nextTileId].length;
+        //
+        // this.terrain.setTileId(cord.i, cord.j, nextTileId);
     };
     Engine.prototype.render = function () {
         window.requestAnimationFrame(this.render.bind(this));
@@ -165,16 +171,16 @@ var Engine = /** @class */ (function () {
         //this.terrainCtx.stroke();
     };
     Engine.prototype.update = function () {
-        if (this.input.isDown(input_1.InputSequence.UP)) {
+        if (this._input.isDown(input_1.InputSequence.UP)) {
             this.camera.setPos(this.camera.x, -(this.movementSpeed * this.delta) + this.camera.y);
         }
-        if (this.input.isDown(input_1.InputSequence.DOWN)) {
+        if (this._input.isDown(input_1.InputSequence.DOWN)) {
             this.camera.setPos(this.camera.x, (this.movementSpeed * this.delta) + this.camera.y);
         }
-        if (this.input.isDown(input_1.InputSequence.LEFT)) {
+        if (this._input.isDown(input_1.InputSequence.LEFT)) {
             this.camera.setPos(-(this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
         }
-        if (this.input.isDown(input_1.InputSequence.RIGHT)) {
+        if (this._input.isDown(input_1.InputSequence.RIGHT)) {
             this.camera.setPos((this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
         }
         for (var _i = 0, _a = this.gameObjects; _i < _a.length; _i++) {

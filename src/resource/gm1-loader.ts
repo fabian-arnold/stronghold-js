@@ -1,7 +1,10 @@
 import {BaseLoader} from "./base-loader";
 
 // program.js
+const TGX_PALETTE_COLORS = 2560;
 
+// set according to team color
+const set = 0;
 
 export class Image {
     width: number;
@@ -10,7 +13,6 @@ export class Image {
     offsetY: number;
     imageData: Uint8ClampedArray;
 }
-
 
 class GM1Header {
     ImageCount: number;
@@ -76,47 +78,7 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
         console.log("Created image loader");
     }
 
-    decodeTile(tileData: DataView, data: Uint8ClampedArray) {
-        let readPos = 0;
-        for (let c_y = 0; c_y < Gm1Loader.GM1TilePixelsPerLine.length; c_y++) {
-            for (let c_x = 0; c_x < Gm1Loader.GM1TilePixelsPerLine[c_y]; c_x++) {
-                const y = c_y;
-                const x = 15 - Gm1Loader.GM1TilePixelsPerLine[y] / 2 + c_x;
-
-                // console.log("Decode GM1Tile: " + x + " " + y);
-                const pos = (y * 30 + x) * 4;
-                const color = tileData.getUint16(readPos, true);
-                Gm1Loader.writeColor(data, pos, color);
-                readPos += 2;
-            }
-        }
-    }
-
-    private static writeColor(data: Uint8ClampedArray, pos: number, color: number) {
-
-        const blue = color & 0b11111;
-        const red = (color >> 10) & 0b11111;
-        const green = (color >> 5) & 0b11111;
-
-        data[pos + 0] = red * 8;
-        data[pos + 1] = green * 8;
-        data[pos + 2] = blue * 8;
-        data[pos + 3] = 255;
-    }
-
-    decodeUncompressed(imageData: DataView, header: GM1ImageHeader, data: Uint8ClampedArray) {
-        let readPos = 0;
-        for (let x = 0; x < header.Width; x++) {
-            for (let y = 0; y < header.Height; y++) {
-                const color = imageData.getUint16(readPos, true);
-                const pos = ((y) * header.Width + (x)) * 4;
-                Gm1Loader.writeColor(data, pos, color);
-                readPos += 2;
-            }
-        }
-    }
-
-    public static decodeTGX(imageData: DataView, width: number, data: Uint8ClampedArray) {
+    public static decodeTGX(imageData: DataView, width: number, data: Uint8ClampedArray, palette: DataView = null) {
         let x = 0;
         let y = 0;
         let readPos = 0;
@@ -144,7 +106,10 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
                 // Stream-of-pixels
                 for (let i = 0; i < tokenLength + 1; i++) {
                     const pos = ((y) * width + (x)) * 4;
-                    const color = imageData.getUint16(readPos, true);
+                    let color = imageData.getUint16(readPos, true);
+                    if (palette != null) {
+                        color = palette.getUint16(set * 256 + color);
+                    }
                     this.writeColor(data, pos, color);
                     x++;
                     readPos += 2;
@@ -154,7 +119,10 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
 
             if (tokenType == 2) {
                 // repeating pixel
-                const color = imageData.getUint16(readPos, true);
+                let color = imageData.getUint16(readPos, true);
+                if (palette != null) {
+                    color = palette.getUint16(set * 256 + color);
+                }
                 readPos += 2;
 
                 for (let i = 0; i < tokenLength + 1; i++) {
@@ -166,6 +134,46 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
             }
             console.error("Invalid token type");
             break;
+        }
+    }
+
+    private static writeColor(data: Uint8ClampedArray, pos: number, color: number) {
+
+        const blue = color & 0b11111;
+        const red = (color >> 10) & 0b11111;
+        const green = (color >> 5) & 0b11111;
+
+        data[pos + 0] = red * 8;
+        data[pos + 1] = green * 8;
+        data[pos + 2] = blue * 8;
+        data[pos + 3] = 255;
+    }
+
+    decodeTile(tileData: DataView, data: Uint8ClampedArray) {
+        let readPos = 0;
+        for (let c_y = 0; c_y < Gm1Loader.GM1TilePixelsPerLine.length; c_y++) {
+            for (let c_x = 0; c_x < Gm1Loader.GM1TilePixelsPerLine[c_y]; c_x++) {
+                const y = c_y;
+                const x = 15 - Gm1Loader.GM1TilePixelsPerLine[y] / 2 + c_x;
+
+                // console.log("Decode GM1Tile: " + x + " " + y);
+                const pos = (y * 30 + x) * 4;
+                const color = tileData.getUint16(readPos, true);
+                Gm1Loader.writeColor(data, pos, color);
+                readPos += 2;
+            }
+        }
+    }
+
+    decodeUncompressed(imageData: DataView, header: GM1ImageHeader, data: Uint8ClampedArray) {
+        let readPos = 0;
+        for (let x = 0; x < header.Width; x++) {
+            for (let y = 0; y < header.Height; y++) {
+                const color = imageData.getUint16(readPos, true);
+                const pos = ((y) * header.Width + (x)) * 4;
+                Gm1Loader.writeColor(data, pos, color);
+                readPos += 2;
+            }
         }
     }
 
@@ -182,7 +190,6 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
             this.parseGM1Header(header, headerDataView);
 
             const paletteDataView = new DataView(arrayBuffer, 88, 5120);
-            console.log("Header data", headerDataView);
 
             const imageOffsets = new Uint32Array(arrayBuffer, 5120 + 88, 4 * header.ImageCount);
             const imageSizes = new Uint32Array(arrayBuffer, 5120 + 88 + 4 * header.ImageCount, 4 * header.ImageCount);
@@ -223,8 +230,14 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
 
             for (let imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
 
+                if (url == "gm/icons_front_end_builder.gm1") {
+
+                }
                 switch (header.DataType) {
                     case 3: {
+                        // if(url == "gm/icons_front_end_builder.gm1"){
+                        //     console.log("Im here");
+                        // }
                         // TILE + TGX Image
                         const imgHeader = imageHeaders[imageNumber];
 
@@ -241,7 +254,7 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
                     }
                     case 5:
                     case 7: {
-                        // TGX Image
+                        // Uncompressed Images
                         const imgHeader = imageHeaders[imageNumber];
                         const tgxImage = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber], imageSizes[imageNumber]);
                         const imgBuffer = new Uint8ClampedArray(imgHeader.Width * imgHeader.Height * 4);
@@ -250,6 +263,7 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
                         break;
                     }
                     case 6:
+                    //header.ImageCount = 70;
                     case 4:
                     case 1: {
                         // TGX Image
@@ -267,44 +281,47 @@ export class Gm1Loader extends BaseLoader<GM1Resource> {
             }
 
             let i = 0;
-            const collections: number[][] = [];
-            let currentCollection: number[] = [];
-            for (let imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
-                const imgHeader = imageHeaders[imageNumber];
-                if (imgHeader.Part == 0) {
-                    currentCollection = [];
-                    collections.push(currentCollection);
-                    i = 0;
-                }
-                if (imgHeader.Parts == 0) {
-                    continue;
-                }
-                currentCollection.push(imageNumber);
-                if (imgHeader.Part == imgHeader.Parts - 1) {
-                    currentCollection = null;
-                }
-
-            }
-
-
             const collImages: GameTile[] = [];
-            for (const imgNumbers of collections) {
+            if (header.DataType == 3) {
+                // Group TGX Tiles
+                const collections: number[][] = [];
+                let currentCollection: number[] = [];
+                for (let imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
+                    const imgHeader = imageHeaders[imageNumber];
+                    if (imgHeader.Part == 0) {
+                        currentCollection = [];
+                        collections.push(currentCollection);
+                        i = 0;
+                    }
+                    if (imgHeader.Parts == 0) {
+                        continue;
+                    }
+                    currentCollection.push(imageNumber);
+                    if (imgHeader.Part == imgHeader.Parts - 1) {
+                        currentCollection = null;
+                    }
 
-                const tls: GM1Tile[] = [];
-
-                for (const imgNumber of imgNumbers) {
-                    tls.push({
-                        image: tileImages[imgNumber],
-                        tile: tileTiles[imgNumber],
-                        header: imageHeaders[imgNumber]
-                    })
                 }
-                collImages.push({
-                    offsetX: imageHeaders[0].HorizontalOffset,
-                    offsetY: imageHeaders[0].TilePositionY,
-                    tiles: tls
-                });
 
+
+                for (const imgNumbers of collections) {
+
+                    const tls: GM1Tile[] = [];
+
+                    for (const imgNumber of imgNumbers) {
+                        tls.push({
+                            image: tileImages[imgNumber],
+                            tile: tileTiles[imgNumber],
+                            header: imageHeaders[imgNumber]
+                        })
+                    }
+                    collImages.push({
+                        offsetX: imageHeaders[0].HorizontalOffset,
+                        offsetY: imageHeaders[0].TilePositionY,
+                        tiles: tls
+                    });
+
+                }
             }
 
             return {

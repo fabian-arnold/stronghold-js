@@ -33,12 +33,6 @@ var Chunk = /** @class */ (function () {
         this.cacheCanvas.height = countJ * Terrain.tileSize + Terrain.tileSize;
         this.cacheCtx = this.cacheCanvas.getContext("2d");
     }
-    Chunk.pointToCoord = function (point) {
-        return {
-            x: ((point.y % 2) * Terrain.tileSize) + (point.x * 2 * Terrain.tileSize),
-            y: point.y * Terrain.tileSize
-        };
-    };
     Chunk.prototype.render = function (ctx) {
         if (this.dirty) {
             this.updateChunk();
@@ -78,7 +72,7 @@ var Chunk = /** @class */ (function () {
         var _y = refTile.header.PositionY;
         for (var _i = 0, tiles_1 = tiles; _i < tiles_1.length; _i++) {
             var tile = tiles_1[_i];
-            var isoPos = Chunk.pointToCoord(new engine_1.Point(i, j));
+            var isoPos = Terrain.pointToCoord(new engine_1.ChunkPos(i, j));
             isoPos.x += tile.header.PositionX - _x;
             isoPos.y += tile.header.PositionY + tile.header.TilePositionY - _y;
             //isoPos.y += tile.header.TilePositionY;
@@ -92,7 +86,7 @@ var Chunk = /** @class */ (function () {
         var _y = refTile.header.PositionY;
         for (var _i = 0, tiles_2 = tiles; _i < tiles_2.length; _i++) {
             var tile = tiles_2[_i];
-            var isoPos = Chunk.pointToCoord(new engine_1.Point(i, j));
+            var isoPos = Terrain.pointToCoord(new engine_1.ChunkPos(i, j));
             isoPos.x += tile.header.PositionX + tile.header.HorizontalOffset - _x;
             isoPos.y += tile.header.PositionY - _y;
             canvas_util_1.CanvasUtil.putImageWithTransparency(this.cacheCtx, new ImageData(tile.image, tile.header.Width, tile.header.Height), isoPos.x, isoPos.y);
@@ -142,6 +136,12 @@ var Terrain = /** @class */ (function (_super) {
         }
         return _this;
     }
+    Terrain.pointToCoord = function (point) {
+        return {
+            x: ((point.j % 2) * Terrain.tileSize) + (point.i * 2 * Terrain.tileSize),
+            y: point.j * Terrain.tileSize
+        };
+    };
     Terrain.prototype.setTileId = function (i, j, tileId) {
         this.levelData[i][j].tileID = tileId;
         this.chunks[Math.floor(i / this.chunkTileSize)][Math.floor(j / (this.chunkTileSize * 2))].markDirty();

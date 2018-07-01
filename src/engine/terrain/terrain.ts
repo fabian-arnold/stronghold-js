@@ -1,6 +1,6 @@
 import {GM1Tile, Image} from "../../resource/gm1-loader";
 import {CanvasUtil} from "../../util/canvas-util";
-import {Point} from "../engine";
+import {ChunkPos, Point} from "../engine";
 import {Camera} from "../camera";
 import {GameObject} from "../gameObject";
 import SimplexNoise = require("simplex-noise");
@@ -31,12 +31,6 @@ class Chunk {
         this.cacheCtx = this.cacheCanvas.getContext("2d");
     }
 
-    private static pointToCoord(point: Point): Point {
-        return {
-            x: ((point.y % 2) * Terrain.tileSize) + (point.x * 2 * Terrain.tileSize),
-            y: point.y * Terrain.tileSize
-        }
-    }
 
     public render(ctx: CanvasRenderingContext2D) {
         if (this.dirty) {
@@ -86,7 +80,7 @@ class Chunk {
 
 
         for (let tile of tiles) {
-            const isoPos = Chunk.pointToCoord(new Point(i, j));
+            const isoPos = Terrain.pointToCoord(new ChunkPos(i, j));
             isoPos.x += tile.header.PositionX - _x;
             isoPos.y += tile.header.PositionY + tile.header.TilePositionY - _y;
 
@@ -104,7 +98,7 @@ class Chunk {
         const _y = refTile.header.PositionY;
 
         for (let tile of tiles) {
-            const isoPos = Chunk.pointToCoord(new Point(i, j));
+            const isoPos = Terrain.pointToCoord(new ChunkPos(i, j));
             isoPos.x += tile.header.PositionX + tile.header.HorizontalOffset - _x;
             isoPos.y += tile.header.PositionY - _y;
 
@@ -167,6 +161,13 @@ export class Terrain extends GameObject {
         }
 
 
+    }
+
+    public static pointToCoord(point: ChunkPos): Point {
+        return {
+            x: ((point.j % 2) * Terrain.tileSize) + (point.i * 2 * Terrain.tileSize),
+            y: point.j * Terrain.tileSize
+        }
     }
 
     public setTileId(i: number, j: number, tileId: number) {

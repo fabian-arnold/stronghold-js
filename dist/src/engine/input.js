@@ -11,6 +11,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var gameObject_1 = require("./gameObject");
+var engine_1 = require("./engine");
 var InputState;
 (function (InputState) {
     InputState[InputState["PRESSED"] = 0] = "PRESSED";
@@ -46,13 +47,19 @@ var Input = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.keyStates = [];
         _this.keyMapping = [];
+        _this.mouseX = 0;
+        _this.mouseY = 0;
+        _this.mouseDown = false;
         _this.keyMapping[InputSequence.LEFT] = new KeySequence("a".charCodeAt(0));
         _this.keyMapping[InputSequence.UP] = new KeySequence("w".charCodeAt(0));
         _this.keyMapping[InputSequence.RIGHT] = new KeySequence("d".charCodeAt(0));
         _this.keyMapping[InputSequence.DOWN] = new KeySequence("s".charCodeAt(0));
         return _this;
     }
-    Input.prototype.register = function () {
+    Input.prototype.init = function (engine) {
+        this.engine = engine;
+    };
+    Input.prototype.register = function (gameContainer) {
         var _this = this;
         window.addEventListener("keydown", function (event) {
             if (!event.repeat) {
@@ -64,6 +71,17 @@ var Input = /** @class */ (function (_super) {
             console.log("Up", event);
             _this.keyStates[event.key.charCodeAt(0)] = InputStateInternal.TO_RELEASE;
         }, true);
+        gameContainer.addEventListener("mousemove", function (event) {
+            var rect = gameContainer.getBoundingClientRect();
+            _this.mouseX = event.clientX - rect.left;
+            _this.mouseY = event.clientY - rect.top;
+        });
+        gameContainer.addEventListener("mousedown", function (event) {
+            _this.mouseDown = true;
+        });
+        gameContainer.addEventListener("mouseup", function (event) {
+            _this.mouseDown = false;
+        });
     };
     Input.prototype.isDown = function (key) {
         var seq = this.keyMapping[key];
@@ -71,6 +89,22 @@ var Input = /** @class */ (function (_super) {
     };
     Input.prototype.isUp = function (key) {
         return !this.isDown(key);
+    };
+    Input.prototype.getMouseScreenPos = function () {
+        return { x: this.mouseX, y: this.mouseY };
+    };
+    Input.prototype.getMouseWorldPos = function () {
+        return {
+            x: this.mouseX + this.engine.camera.getPos().x,
+            y: this.mouseY + this.engine.camera.getPos().y
+        };
+    };
+    Input.prototype.isMouseDown = function () {
+        return this.mouseDown;
+    };
+    Input.prototype.getMouseChunkPos = function () {
+        var pos = this.getMouseWorldPos();
+        return engine_1.Engine.chunkForPixel(pos.x, pos.y);
     };
     Input.prototype.update = function () {
         // Delay releasing the keys so there are down at least one cycle

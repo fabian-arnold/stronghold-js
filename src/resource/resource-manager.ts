@@ -19,6 +19,7 @@ export enum ResourceCollections {
     INTERFACE_RUINS = "gm/interface_ruins.gm1",
     INTERFACE_SLIDER_BAR = "gm/interface_slider_bar.gm1",
     INTERFACE_ICONS_FRONT_END = "gm/icons_front_end.gm1",
+    INTERFACE_ICONS_PLACEHOLDERS = "gm/icons_placeholders.gm1",
     INTERFACE_ICONS_FRONT_END_BUILDER = "gm/icons_front_end_builder.gm1",
     INTERFACE_ICONS_FRONT_END_COMBAT = "gm/icons_front_end_combat.gm1",
     INTERFACE_ICONS_FRONT_END_ECONOMICS = "gm/icons_front_end_economics.gm1",
@@ -31,7 +32,7 @@ export enum ResourceCollections {
     INTERFACE_FRONTEND_BUILDER = "gfx/frontend_builder.tgx",
     INTERFACE_FRONTEND_COMBAT = "gfx/frontend_combat.tgx",
     INTERFACE_TSLICE1 = "gfx/tslice1.tgx",
-    INTERFACE_TEST = "gfx/p1.tgx",
+    INTERFACE_TEST = "gm/face800-blank.gm1",
 }
 
 
@@ -77,7 +78,7 @@ export class ResourceManager {
         const canvas = document.createElement('canvas'),
             ctx = canvas.getContext('2d');
         canvas.width = 1400;
-        canvas.height = 3000;
+        canvas.height = 6000;
 
 
         let lastCanvasX = 0;
@@ -109,22 +110,32 @@ export class ResourceManager {
             const width = right - left;
             const height = bottom - top;
 
-            ctx.rect(lastCanvasX - 5, lastCanvasY - 5, width + 5, height + 5);
+            ctx.strokeStyle = "green";
+            ctx.strokeRect(lastCanvasX - 5, lastCanvasY - 5, width + 5, height + 5);
             ctx.stroke();
-            ctx.fillText(d++ + "", lastCanvasX, lastCanvasY - 7);
+            ctx.fillText(d++ + " " + width + " x " + height, lastCanvasX, lastCanvasY - 7);
 
 
+            console.log(gameTiles);
             try {
                 for (const tile of gameTiles.tiles) {
+
                     // draw the tile part
                     let x = tile.header.PositionX - left;
                     let y = tile.header.PositionY + tile.header.TilePositionY - top;
-                    CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.tile, 30, 16), x + lastCanvasX, y + lastCanvasY);
-
+                    if (tile.tile) {
+                        CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.tile, 30, 16), x + lastCanvasX, y + lastCanvasY);
+                    } else {
+                        ctx.fillText("Skipped tile", lastCanvasX, lastCanvasY + 10);
+                    }
                     //draw the image part
                     x = tile.header.PositionX + tile.header.HorizontalOffset - left;
                     y = tile.header.PositionY - top;
-                    CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.image, tile.header.Width, tile.header.Height), x + lastCanvasX, y + lastCanvasY);
+                    if (tile.image) {
+                        CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.image, tile.header.Width, tile.header.Height), x + lastCanvasX, y + lastCanvasY);
+                    } else {
+                        ctx.fillText("Skipped image", lastCanvasX, lastCanvasY + 20);
+                    }
                 }
             } catch (e) {
                 console.warn("Error while rendering tile", e);
@@ -140,14 +151,18 @@ export class ResourceManager {
         }
 
         lastCanvasX = 0;
+        let i = 0;
 
         // Draw images in resource
         for (let image of resource.images) {
-            CanvasUtil.putImageWithTransparency(ctx, new ImageData(image.image, image.header.Width, image.header.Height), lastCanvasX, lastCanvasY);
+
+            ctx.fillText("ID: " + i++, lastCanvasX, lastCanvasY);
+            ctx.fillText("W: " + image.header.Width + " H: " + image.header.Height, lastCanvasX, lastCanvasY + 10);
+            ctx.fillText("X: " + image.header.PositionX + " Y: " + image.header.PositionY, lastCanvasX, lastCanvasY + 20);
+            CanvasUtil.putImageWithTransparency(ctx, new ImageData(image.image, image.header.Width, image.header.Height), lastCanvasX, lastCanvasY + 30);
             lastCanvasX += image.header.Width + 20;
-            console.log(image.header);
-            console.log("LCX", lastCanvasX);
-            maxHeightInRow = Math.max(maxHeightInRow, image.header.Height);
+
+            maxHeightInRow = Math.max(maxHeightInRow, image.header.Height + 30);
             if (lastCanvasX > 1000) {
                 lastCanvasX = 10;
                 lastCanvasY += maxHeightInRow + 20;

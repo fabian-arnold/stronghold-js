@@ -24,14 +24,12 @@ export class Engine {
     readonly movementSpeed = 900;
     private terrainCanvas: HTMLCanvasElement;
     private terrainCtx: CanvasRenderingContext2D;
-    private terrain: Terrain;
     private tiles: GM1Tile[][] = [];
     private buildings: GameTile[] = [];
     private lastTime = (new Date()).getTime();
     private currentTime = 0;
     private delta = 0;
     private tileWidth = 16;
-    private input: Input;
     private gameObjects: GameObject[] = [];
 
     constructor(public resourceManager: ResourceManager) {
@@ -66,31 +64,43 @@ export class Engine {
         this.gameContainer.style.width = this.terrainCanvas.width + "px";
         this.gameContainer.style.position = "relative";
         this._gameContainer.appendChild(this.terrainCanvas);
-        this.input = new Input();
-        this.input.register();
+        this._input = new Input();
+        this._input.register(this.terrainCanvas);
 
         this.camera = new Camera();
         this.camera.setPos(500, 100);
 
 
-        this.terrain = new Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
+        this._terrain = new Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
 
-        this.gameObjects.push(this.terrain);
-        this.gameObjects.push(this.input);
+        this.gameObjects.push(this._terrain);
+        this.gameObjects.push(this._input);
         this.gameObjects.push(new Gui());
 
-        this.terrainCanvas.onmousedown = (event) => {
-            const rect = this.terrainCanvas.getBoundingClientRect();
-            this.click(event.clientX - rect.left, event.clientY - rect.top);
-        };
 
         document.body.appendChild(this._gameContainer);
+    }
+
+    private _terrain: Terrain;
+
+    get terrain(): Terrain {
+        return this._terrain;
+    }
+
+    private _input: Input;
+
+    get input(): Input {
+        return this._input;
     }
 
     private _gameContainer: HTMLDivElement;
 
     get gameContainer(): HTMLDivElement {
         return this._gameContainer;
+    }
+
+    get gameWidth(): number {
+        return this.terrainCanvas.width;
     }
 
     public static chunkForPixel(x: number, y: number): ChunkPos {
@@ -103,10 +113,6 @@ export class Engine {
             i: Math.floor((x - xOff) / (Terrain.tileSize * 2)),
             j: Math.floor((y - yOff) / (Terrain.tileSize))
         }
-    }
-
-    get gameWidth(): number{
-        return this.terrainCanvas.width;
     }
 
     public init() {
@@ -133,18 +139,12 @@ export class Engine {
     }
 
     private click(x: number, y: number) {
-        const pos: Point = {
-            x: x + this.camera.getPos().x,
-            y: y + this.camera.getPos().y
-        };
-
-
-        const cord = Engine.chunkForPixel(pos.x, pos.y);
-        console.log("Click coord", cord);
-        const nextTileId = (this.terrain.getTileId(cord.i, cord.j) + 1) % 3;
-        //     const nextTileCount = this.tiles[nextTileId].length;
-
-        this.terrain.setTileId(cord.i, cord.j, nextTileId);
+        //
+        // console.log("Click coord", cord);
+        // const nextTileId = (this.terrain.getTileId(cord.i, cord.j) + 1) % 3;
+        // //     const nextTileCount = this.tiles[nextTileId].length;
+        //
+        // this.terrain.setTileId(cord.i, cord.j, nextTileId);
 
 
     }
@@ -186,19 +186,19 @@ export class Engine {
     }
 
     private update() {
-        if (this.input.isDown(InputSequence.UP)) {
+        if (this._input.isDown(InputSequence.UP)) {
             this.camera.setPos(this.camera.x, -(this.movementSpeed * this.delta) + this.camera.y);
 
         }
-        if (this.input.isDown(InputSequence.DOWN)) {
+        if (this._input.isDown(InputSequence.DOWN)) {
             this.camera.setPos(this.camera.x, (this.movementSpeed * this.delta) + this.camera.y);
 
         }
-        if (this.input.isDown(InputSequence.LEFT)) {
+        if (this._input.isDown(InputSequence.LEFT)) {
             this.camera.setPos(-(this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
 
         }
-        if (this.input.isDown(InputSequence.RIGHT)) {
+        if (this._input.isDown(InputSequence.RIGHT)) {
             this.camera.setPos((this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
         }
 

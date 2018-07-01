@@ -12,6 +12,9 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var base_loader_1 = require("./base-loader");
 // program.js
+var TGX_PALETTE_COLORS = 2560;
+// set according to team color
+var set = 0;
 var Image = /** @class */ (function () {
     function Image() {
     }
@@ -64,41 +67,8 @@ var Gm1Loader = /** @class */ (function (_super) {
         console.log("Created image loader");
         return _this;
     }
-    Gm1Loader.prototype.decodeTile = function (tileData, data) {
-        var readPos = 0;
-        for (var c_y = 0; c_y < Gm1Loader.GM1TilePixelsPerLine.length; c_y++) {
-            for (var c_x = 0; c_x < Gm1Loader.GM1TilePixelsPerLine[c_y]; c_x++) {
-                var y = c_y;
-                var x = 15 - Gm1Loader.GM1TilePixelsPerLine[y] / 2 + c_x;
-                // console.log("Decode GM1Tile: " + x + " " + y);
-                var pos = (y * 30 + x) * 4;
-                var color = tileData.getUint16(readPos, true);
-                Gm1Loader.writeColor(data, pos, color);
-                readPos += 2;
-            }
-        }
-    };
-    Gm1Loader.writeColor = function (data, pos, color) {
-        var blue = color & 31;
-        var red = (color >> 10) & 31;
-        var green = (color >> 5) & 31;
-        data[pos + 0] = red * 8;
-        data[pos + 1] = green * 8;
-        data[pos + 2] = blue * 8;
-        data[pos + 3] = 255;
-    };
-    Gm1Loader.prototype.decodeUncompressed = function (imageData, header, data) {
-        var readPos = 0;
-        for (var x = 0; x < header.Width; x++) {
-            for (var y = 0; y < header.Height; y++) {
-                var color = imageData.getUint16(readPos, true);
-                var pos = ((y) * header.Width + (x)) * 4;
-                Gm1Loader.writeColor(data, pos, color);
-                readPos += 2;
-            }
-        }
-    };
-    Gm1Loader.decodeTGX = function (imageData, width, data) {
+    Gm1Loader.decodeTGX = function (imageData, width, data, palette) {
+        if (palette === void 0) { palette = null; }
         var x = 0;
         var y = 0;
         var readPos = 0;
@@ -126,6 +96,9 @@ var Gm1Loader = /** @class */ (function (_super) {
                 for (var i = 0; i < tokenLength + 1; i++) {
                     var pos = ((y) * width + (x)) * 4;
                     var color = imageData.getUint16(readPos, true);
+                    if (palette != null) {
+                        color = palette.getUint16(set * 256 + color);
+                    }
                     this.writeColor(data, pos, color);
                     x++;
                     readPos += 2;
@@ -135,6 +108,9 @@ var Gm1Loader = /** @class */ (function (_super) {
             if (tokenType == 2) {
                 // repeating pixel
                 var color = imageData.getUint16(readPos, true);
+                if (palette != null) {
+                    color = palette.getUint16(set * 256 + color);
+                }
                 readPos += 2;
                 for (var i = 0; i < tokenLength + 1; i++) {
                     var pos = ((y) * width + (x)) * 4;
@@ -147,6 +123,40 @@ var Gm1Loader = /** @class */ (function (_super) {
             break;
         }
     };
+    Gm1Loader.writeColor = function (data, pos, color) {
+        var blue = color & 31;
+        var red = (color >> 10) & 31;
+        var green = (color >> 5) & 31;
+        data[pos + 0] = red * 8;
+        data[pos + 1] = green * 8;
+        data[pos + 2] = blue * 8;
+        data[pos + 3] = 255;
+    };
+    Gm1Loader.prototype.decodeTile = function (tileData, data) {
+        var readPos = 0;
+        for (var c_y = 0; c_y < Gm1Loader.GM1TilePixelsPerLine.length; c_y++) {
+            for (var c_x = 0; c_x < Gm1Loader.GM1TilePixelsPerLine[c_y]; c_x++) {
+                var y = c_y;
+                var x = 15 - Gm1Loader.GM1TilePixelsPerLine[y] / 2 + c_x;
+                // console.log("Decode GM1Tile: " + x + " " + y);
+                var pos = (y * 30 + x) * 4;
+                var color = tileData.getUint16(readPos, true);
+                Gm1Loader.writeColor(data, pos, color);
+                readPos += 2;
+            }
+        }
+    };
+    Gm1Loader.prototype.decodeUncompressed = function (imageData, header, data) {
+        var readPos = 0;
+        for (var x = 0; x < header.Width; x++) {
+            for (var y = 0; y < header.Height; y++) {
+                var color = imageData.getUint16(readPos, true);
+                var pos = ((y) * header.Width + (x)) * 4;
+                Gm1Loader.writeColor(data, pos, color);
+                readPos += 2;
+            }
+        }
+    };
     Gm1Loader.prototype.parseGM1Header = function (header, dataView) {
         header.ImageCount = dataView.getInt32(12, true);
         header.DataType = dataView.getInt32(20, true);
@@ -157,7 +167,6 @@ var Gm1Loader = /** @class */ (function (_super) {
             var headerDataView = new DataView(arrayBuffer, 0, 88);
             this.parseGM1Header(header, headerDataView);
             var paletteDataView = new DataView(arrayBuffer, 88, 5120);
-            console.log("Header data", headerDataView);
             var imageOffsets = new Uint32Array(arrayBuffer, 5120 + 88, 4 * header.ImageCount);
             var imageSizes = new Uint32Array(arrayBuffer, 5120 + 88 + 4 * header.ImageCount, 4 * header.ImageCount);
             var imageHeadersBuffer = new DataView(arrayBuffer, 88 + 5120 + 8 * header.ImageCount);
@@ -188,8 +197,13 @@ var Gm1Loader = /** @class */ (function (_super) {
             var tileTiles = [];
             var imageImages = [];
             for (var imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
+                if (url == "gm/icons_front_end_builder.gm1") {
+                }
                 switch (header.DataType) {
                     case 3: {
+                        // if(url == "gm/icons_front_end_builder.gm1"){
+                        //     console.log("Im here");
+                        // }
                         // TILE + TGX Image
                         var imgHeader = imageHeaders[imageNumber];
                         var tgxTile = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber], 512);
@@ -204,7 +218,7 @@ var Gm1Loader = /** @class */ (function (_super) {
                     }
                     case 5:
                     case 7: {
-                        // TGX Image
+                        // Uncompressed Images
                         var imgHeader = imageHeaders[imageNumber];
                         var tgxImage = new DataView(arrayBuffer, imageData.byteOffset + imageOffsets[imageNumber], imageSizes[imageNumber]);
                         var imgBuffer = new Uint8ClampedArray(imgHeader.Width * imgHeader.Height * 4);
@@ -213,6 +227,7 @@ var Gm1Loader = /** @class */ (function (_super) {
                         break;
                     }
                     case 6:
+                    //header.ImageCount = 70;
                     case 4:
                     case 1: {
                         // TGX Image
@@ -228,40 +243,43 @@ var Gm1Loader = /** @class */ (function (_super) {
                 }
             }
             var i = 0;
-            var collections = [];
-            var currentCollection = [];
-            for (var imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
-                var imgHeader = imageHeaders[imageNumber];
-                if (imgHeader.Part == 0) {
-                    currentCollection = [];
-                    collections.push(currentCollection);
-                    i = 0;
-                }
-                if (imgHeader.Parts == 0) {
-                    continue;
-                }
-                currentCollection.push(imageNumber);
-                if (imgHeader.Part == imgHeader.Parts - 1) {
-                    currentCollection = null;
-                }
-            }
             var collImages = [];
-            for (var _i = 0, collections_1 = collections; _i < collections_1.length; _i++) {
-                var imgNumbers = collections_1[_i];
-                var tls = [];
-                for (var _a = 0, imgNumbers_1 = imgNumbers; _a < imgNumbers_1.length; _a++) {
-                    var imgNumber = imgNumbers_1[_a];
-                    tls.push({
-                        image: tileImages[imgNumber],
-                        tile: tileTiles[imgNumber],
-                        header: imageHeaders[imgNumber]
+            if (header.DataType == 3) {
+                // Group TGX Tiles
+                var collections = [];
+                var currentCollection = [];
+                for (var imageNumber = 0; imageNumber < header.ImageCount; imageNumber++) {
+                    var imgHeader = imageHeaders[imageNumber];
+                    if (imgHeader.Part == 0) {
+                        currentCollection = [];
+                        collections.push(currentCollection);
+                        i = 0;
+                    }
+                    if (imgHeader.Parts == 0) {
+                        continue;
+                    }
+                    currentCollection.push(imageNumber);
+                    if (imgHeader.Part == imgHeader.Parts - 1) {
+                        currentCollection = null;
+                    }
+                }
+                for (var _i = 0, collections_1 = collections; _i < collections_1.length; _i++) {
+                    var imgNumbers = collections_1[_i];
+                    var tls = [];
+                    for (var _a = 0, imgNumbers_1 = imgNumbers; _a < imgNumbers_1.length; _a++) {
+                        var imgNumber = imgNumbers_1[_a];
+                        tls.push({
+                            image: tileImages[imgNumber],
+                            tile: tileTiles[imgNumber],
+                            header: imageHeaders[imgNumber]
+                        });
+                    }
+                    collImages.push({
+                        offsetX: imageHeaders[0].HorizontalOffset,
+                        offsetY: imageHeaders[0].TilePositionY,
+                        tiles: tls
                     });
                 }
-                collImages.push({
-                    offsetX: imageHeaders[0].HorizontalOffset,
-                    offsetY: imageHeaders[0].TilePositionY,
-                    tiles: tls
-                });
             }
             return {
                 gameTiles: collImages,

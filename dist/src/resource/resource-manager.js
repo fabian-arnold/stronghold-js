@@ -20,6 +20,7 @@ var ResourceCollections;
     ResourceCollections["INTERFACE_RUINS"] = "gm/interface_ruins.gm1";
     ResourceCollections["INTERFACE_SLIDER_BAR"] = "gm/interface_slider_bar.gm1";
     ResourceCollections["INTERFACE_ICONS_FRONT_END"] = "gm/icons_front_end.gm1";
+    ResourceCollections["INTERFACE_ICONS_PLACEHOLDERS"] = "gm/icons_placeholders.gm1";
     ResourceCollections["INTERFACE_ICONS_FRONT_END_BUILDER"] = "gm/icons_front_end_builder.gm1";
     ResourceCollections["INTERFACE_ICONS_FRONT_END_COMBAT"] = "gm/icons_front_end_combat.gm1";
     ResourceCollections["INTERFACE_ICONS_FRONT_END_ECONOMICS"] = "gm/icons_front_end_economics.gm1";
@@ -32,7 +33,7 @@ var ResourceCollections;
     ResourceCollections["INTERFACE_FRONTEND_BUILDER"] = "gfx/frontend_builder.tgx";
     ResourceCollections["INTERFACE_FRONTEND_COMBAT"] = "gfx/frontend_combat.tgx";
     ResourceCollections["INTERFACE_TSLICE1"] = "gfx/tslice1.tgx";
-    ResourceCollections["INTERFACE_TEST"] = "gfx/p1.tgx";
+    ResourceCollections["INTERFACE_TEST"] = "gm/face800-blank.gm1";
 })(ResourceCollections = exports.ResourceCollections || (exports.ResourceCollections = {}));
 var ResourceManager = /** @class */ (function () {
     function ResourceManager() {
@@ -70,7 +71,7 @@ var ResourceManager = /** @class */ (function () {
         // create off-screen canvas element
         var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
         canvas.width = 1400;
-        canvas.height = 3000;
+        canvas.height = 6000;
         var lastCanvasX = 0;
         var lastCanvasY = 20;
         var maxHeightInRow = 0;
@@ -98,20 +99,32 @@ var ResourceManager = /** @class */ (function () {
             //calculate the actual dimensions of the image
             var width = right - left;
             var height = bottom - top_1;
-            ctx.rect(lastCanvasX - 5, lastCanvasY - 5, width + 5, height + 5);
+            ctx.strokeStyle = "green";
+            ctx.strokeRect(lastCanvasX - 5, lastCanvasY - 5, width + 5, height + 5);
             ctx.stroke();
-            ctx.fillText(d++ + "", lastCanvasX, lastCanvasY - 7);
+            ctx.fillText(d++ + " " + width + " x " + height, lastCanvasX, lastCanvasY - 7);
+            console.log(gameTiles);
             try {
                 for (var _d = 0, _e = gameTiles.tiles; _d < _e.length; _d++) {
                     var tile = _e[_d];
                     // draw the tile part
                     var x = tile.header.PositionX - left;
                     var y = tile.header.PositionY + tile.header.TilePositionY - top_1;
-                    canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.tile, 30, 16), x + lastCanvasX, y + lastCanvasY);
+                    if (tile.tile) {
+                        canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.tile, 30, 16), x + lastCanvasX, y + lastCanvasY);
+                    }
+                    else {
+                        ctx.fillText("Skipped tile", lastCanvasX, lastCanvasY + 10);
+                    }
                     //draw the image part
                     x = tile.header.PositionX + tile.header.HorizontalOffset - left;
                     y = tile.header.PositionY - top_1;
-                    canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.image, tile.header.Width, tile.header.Height), x + lastCanvasX, y + lastCanvasY);
+                    if (tile.image) {
+                        canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(tile.image, tile.header.Width, tile.header.Height), x + lastCanvasX, y + lastCanvasY);
+                    }
+                    else {
+                        ctx.fillText("Skipped image", lastCanvasX, lastCanvasY + 20);
+                    }
                 }
             }
             catch (e) {
@@ -126,14 +139,16 @@ var ResourceManager = /** @class */ (function () {
             }
         }
         lastCanvasX = 0;
+        var i = 0;
         // Draw images in resource
         for (var _f = 0, _g = resource.images; _f < _g.length; _f++) {
             var image = _g[_f];
-            canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(image.image, image.header.Width, image.header.Height), lastCanvasX, lastCanvasY);
+            ctx.fillText("ID: " + i++, lastCanvasX, lastCanvasY);
+            ctx.fillText("W: " + image.header.Width + " H: " + image.header.Height, lastCanvasX, lastCanvasY + 10);
+            ctx.fillText("X: " + image.header.PositionX + " Y: " + image.header.PositionY, lastCanvasX, lastCanvasY + 20);
+            canvas_util_1.CanvasUtil.putImageWithTransparency(ctx, new ImageData(image.image, image.header.Width, image.header.Height), lastCanvasX, lastCanvasY + 30);
             lastCanvasX += image.header.Width + 20;
-            console.log(image.header);
-            console.log("LCX", lastCanvasX);
-            maxHeightInRow = Math.max(maxHeightInRow, image.header.Height);
+            maxHeightInRow = Math.max(maxHeightInRow, image.header.Height + 30);
             if (lastCanvasX > 1000) {
                 lastCanvasX = 10;
                 lastCanvasY += maxHeightInRow + 20;
