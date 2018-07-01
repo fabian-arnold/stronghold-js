@@ -1,8 +1,10 @@
-import {GameTile, GM1Tile} from "../resource/image-loader";
+import {GameTile, GM1Tile} from "../resource/gm1-loader";
 import {Terrain} from "./terrain/terrain";
 import {Camera} from "./camera";
 import {Input, InputSequence} from "./input";
 import {GameObject} from "./gameObject";
+import {Gui} from "../gui/gui";
+import {ResourceManager} from "../resource/resource-manager";
 
 export class Point {
     constructor(public x: number, public y: number) {
@@ -22,7 +24,6 @@ export class Engine {
     readonly movementSpeed = 900;
     private terrainCanvas: HTMLCanvasElement;
     private terrainCtx: CanvasRenderingContext2D;
-    private gameContainer: HTMLDivElement;
     private terrain: Terrain;
     private tiles: GM1Tile[][] = [];
     private buildings: GameTile[] = [];
@@ -31,11 +32,10 @@ export class Engine {
     private delta = 0;
     private tileWidth = 16;
     private input: Input;
-
     private gameObjects: GameObject[] = [];
 
-    constructor() {
-        this.gameContainer = document.createElement('div');
+    constructor(public resourceManager: ResourceManager) {
+        this._gameContainer = document.createElement('div');
 
         this.terrainCanvas = document.createElement('canvas');
         this.terrainCtx = this.terrainCanvas.getContext('2d');
@@ -43,7 +43,29 @@ export class Engine {
         this.terrainCanvas.height = window.innerHeight;
         this.terrainCanvas.width = window.innerWidth;
 
-        this.gameContainer.appendChild(this.terrainCanvas);
+        if (window.innerWidth < 1280) {
+            this.terrainCanvas.width = 1024;
+        } else if (window.innerWidth < 1360) {
+            this.terrainCanvas.width = 1280;
+        } else if (window.innerWidth < 1366) {
+            this.terrainCanvas.width = 1360;
+        } else if (window.innerWidth < 1440) {
+            this.terrainCanvas.width = 1366;
+        } else if (window.innerWidth < 1600) {
+            this.terrainCanvas.width = 1440;
+        } else if (window.innerWidth < 1680) {
+            this.terrainCanvas.width = 1600;
+        } else if (window.innerWidth < 1920) {
+            this.terrainCanvas.width = 1680;
+        } else if (window.innerWidth < 2560) {
+            this.terrainCanvas.width = 1920;
+        } else {
+            this.terrainCanvas.width = 2560;
+        }
+
+        this.gameContainer.style.width = this.terrainCanvas.width + "px";
+        this.gameContainer.style.position = "relative";
+        this._gameContainer.appendChild(this.terrainCanvas);
         this.input = new Input();
         this.input.register();
 
@@ -51,31 +73,24 @@ export class Engine {
         this.camera.setPos(500, 100);
 
 
-
         this.terrain = new Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
 
         this.gameObjects.push(this.terrain);
         this.gameObjects.push(this.input);
+        this.gameObjects.push(new Gui());
 
         this.terrainCanvas.onmousedown = (event) => {
             const rect = this.terrainCanvas.getBoundingClientRect();
             this.click(event.clientX - rect.left, event.clientY - rect.top);
         };
 
-        document.body.appendChild(this.gameContainer);
+        document.body.appendChild(this._gameContainer);
     }
 
-    public init(){
-        for(let go of this.gameObjects){
-            go.preInit();
-        }
-        for(let go of this.gameObjects){
-            go.init(this);
-        }
-        for(let go of this.gameObjects){
-            go.postInit();
-        }
+    private _gameContainer: HTMLDivElement;
 
+    get gameContainer(): HTMLDivElement {
+        return this._gameContainer;
     }
 
     public static chunkForPixel(x: number, y: number): ChunkPos {
@@ -90,6 +105,22 @@ export class Engine {
         }
     }
 
+    get gameWidth(): number{
+        return this.terrainCanvas.width;
+    }
+
+    public init() {
+        for (let go of this.gameObjects) {
+            go.preInit();
+        }
+        for (let go of this.gameObjects) {
+            go.init(this);
+        }
+        for (let go of this.gameObjects) {
+            go.postInit();
+        }
+
+    }
 
     public addTile(tile: GM1Tile[]) {
         this.tiles.push(tile);
@@ -134,13 +165,13 @@ export class Engine {
         this.terrainCtx.save();
         this.terrainCtx.translate(-this.camera.x, -this.camera.y);
 
-        for(let go of this.gameObjects){
+        for (let go of this.gameObjects) {
             go.preRender();
         }
-        for(let go of this.gameObjects){
+        for (let go of this.gameObjects) {
             go.render(this.terrainCtx);
         }
-        for(let go of this.gameObjects){
+        for (let go of this.gameObjects) {
             go.postRender();
         }
 
@@ -172,13 +203,13 @@ export class Engine {
         }
 
 
-        for(let go of this.gameObjects){
+        for (let go of this.gameObjects) {
             go.preUpdate();
         }
-        for(let go of this.gameObjects){
+        for (let go of this.gameObjects) {
             go.update();
         }
-        for(let go of this.gameObjects){
+        for (let go of this.gameObjects) {
             go.postUpdate();
         }
     }

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var terrain_1 = require("./terrain/terrain");
 var camera_1 = require("./camera");
 var input_1 = require("./input");
+var gui_1 = require("../gui/gui");
 var Point = /** @class */ (function () {
     function Point(x, y) {
         this.x = x;
@@ -20,8 +21,9 @@ var ChunkPos = /** @class */ (function () {
 }());
 exports.ChunkPos = ChunkPos;
 var Engine = /** @class */ (function () {
-    function Engine() {
+    function Engine(resourceManager) {
         var _this = this;
+        this.resourceManager = resourceManager;
         this.movementSpeed = 900;
         this.tiles = [];
         this.buildings = [];
@@ -30,12 +32,41 @@ var Engine = /** @class */ (function () {
         this.delta = 0;
         this.tileWidth = 16;
         this.gameObjects = [];
-        this.gameContainer = document.createElement('div');
+        this._gameContainer = document.createElement('div');
         this.terrainCanvas = document.createElement('canvas');
         this.terrainCtx = this.terrainCanvas.getContext('2d');
         this.terrainCanvas.height = window.innerHeight;
         this.terrainCanvas.width = window.innerWidth;
-        this.gameContainer.appendChild(this.terrainCanvas);
+        if (window.innerWidth < 1280) {
+            this.terrainCanvas.width = 1024;
+        }
+        else if (window.innerWidth < 1360) {
+            this.terrainCanvas.width = 1280;
+        }
+        else if (window.innerWidth < 1366) {
+            this.terrainCanvas.width = 1360;
+        }
+        else if (window.innerWidth < 1440) {
+            this.terrainCanvas.width = 1366;
+        }
+        else if (window.innerWidth < 1600) {
+            this.terrainCanvas.width = 1440;
+        }
+        else if (window.innerWidth < 1680) {
+            this.terrainCanvas.width = 1600;
+        }
+        else if (window.innerWidth < 1920) {
+            this.terrainCanvas.width = 1680;
+        }
+        else if (window.innerWidth < 2560) {
+            this.terrainCanvas.width = 1920;
+        }
+        else {
+            this.terrainCanvas.width = 2560;
+        }
+        this.gameContainer.style.width = this.terrainCanvas.width + "px";
+        this.gameContainer.style.position = "relative";
+        this._gameContainer.appendChild(this.terrainCanvas);
         this.input = new input_1.Input();
         this.input.register();
         this.camera = new camera_1.Camera();
@@ -43,12 +74,37 @@ var Engine = /** @class */ (function () {
         this.terrain = new terrain_1.Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
         this.gameObjects.push(this.terrain);
         this.gameObjects.push(this.input);
+        this.gameObjects.push(new gui_1.Gui());
         this.terrainCanvas.onmousedown = function (event) {
             var rect = _this.terrainCanvas.getBoundingClientRect();
             _this.click(event.clientX - rect.left, event.clientY - rect.top);
         };
-        document.body.appendChild(this.gameContainer);
+        document.body.appendChild(this._gameContainer);
     }
+    Object.defineProperty(Engine.prototype, "gameContainer", {
+        get: function () {
+            return this._gameContainer;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Engine.chunkForPixel = function (x, y) {
+        var xMod = x % (terrain_1.Terrain.tileSize * 2);
+        var yMod = y % terrain_1.Terrain.tileSize;
+        var xOff = (yMod / terrain_1.Terrain.tileSize) * (terrain_1.Terrain.tileSize);
+        var yOff = (xMod / (terrain_1.Terrain.tileSize * 2)) * terrain_1.Terrain.tileSize * 0.5;
+        return {
+            i: Math.floor((x - xOff) / (terrain_1.Terrain.tileSize * 2)),
+            j: Math.floor((y - yOff) / (terrain_1.Terrain.tileSize))
+        };
+    };
+    Object.defineProperty(Engine.prototype, "gameWidth", {
+        get: function () {
+            return this.terrainCanvas.width;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Engine.prototype.init = function () {
         for (var _i = 0, _a = this.gameObjects; _i < _a.length; _i++) {
             var go = _a[_i];
@@ -62,16 +118,6 @@ var Engine = /** @class */ (function () {
             var go = _e[_d];
             go.postInit();
         }
-    };
-    Engine.chunkForPixel = function (x, y) {
-        var xMod = x % (terrain_1.Terrain.tileSize * 2);
-        var yMod = y % terrain_1.Terrain.tileSize;
-        var xOff = (yMod / terrain_1.Terrain.tileSize) * (terrain_1.Terrain.tileSize);
-        var yOff = (xMod / (terrain_1.Terrain.tileSize * 2)) * terrain_1.Terrain.tileSize * 0.5;
-        return {
-            i: Math.floor((x - xOff) / (terrain_1.Terrain.tileSize * 2)),
-            j: Math.floor((y - yOff) / (terrain_1.Terrain.tileSize))
-        };
     };
     Engine.prototype.addTile = function (tile) {
         this.tiles.push(tile);

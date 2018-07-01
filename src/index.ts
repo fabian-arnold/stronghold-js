@@ -1,10 +1,12 @@
 import {Engine} from "./engine/engine";
-import {ImageLoader} from "./resource/image-loader";
+import {Gm1Loader} from "./resource/gm1-loader";
 import {ResourceCollections, ResourceManager} from "./resource/resource-manager";
 
 
-const imageLoader: ImageLoader = new ImageLoader();
-const engine: Engine = new Engine();
+const imageLoader: Gm1Loader = new Gm1Loader();
+
+const resourceManager = new ResourceManager();
+const engine: Engine = new Engine(resourceManager);
 
 /*
     tile_goods.gm1: stock piles
@@ -12,7 +14,6 @@ const engine: Engine = new Engine();
  */
 
 
-const resourceManager = new ResourceManager();
 resourceManager.loadResources().subscribe(_ => {
     resourceManager.addDebugGUI();
 

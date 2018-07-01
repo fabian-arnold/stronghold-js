@@ -47,16 +47,16 @@ var GM1Resource = /** @class */ (function () {
     return GM1Resource;
 }());
 exports.GM1Resource = GM1Resource;
-var ImageLoader = /** @class */ (function () {
-    function ImageLoader() {
+var GM1Loader = /** @class */ (function () {
+    function GM1Loader() {
         console.log("Created image loader");
     }
-    ImageLoader.prototype.decodeTile = function (tileData, data) {
+    GM1Loader.prototype.decodeTile = function (tileData, data) {
         var readPos = 0;
-        for (var c_y = 0; c_y < ImageLoader.GM1TilePixelsPerLine.length; c_y++) {
-            for (var c_x = 0; c_x < ImageLoader.GM1TilePixelsPerLine[c_y]; c_x++) {
+        for (var c_y = 0; c_y < GM1Loader.GM1TilePixelsPerLine.length; c_y++) {
+            for (var c_x = 0; c_x < GM1Loader.GM1TilePixelsPerLine[c_y]; c_x++) {
                 var y = c_y;
-                var x = 15 - ImageLoader.GM1TilePixelsPerLine[y] / 2 + c_x;
+                var x = 15 - GM1Loader.GM1TilePixelsPerLine[y] / 2 + c_x;
                 // console.log("Decode GM1Tile: " + x + " " + y);
                 var pos = (y * 30 + x) * 4;
                 var color = tileData.getUint16(readPos, true);
@@ -65,7 +65,7 @@ var ImageLoader = /** @class */ (function () {
             }
         }
     };
-    ImageLoader.prototype.writeColor = function (data, pos, color) {
+    GM1Loader.prototype.writeColor = function (data, pos, color) {
         var blue = color & 31;
         var red = (color >> 10) & 31;
         var green = (color >> 5) & 31;
@@ -74,7 +74,7 @@ var ImageLoader = /** @class */ (function () {
         data[pos + 2] = blue * 8;
         data[pos + 3] = 255;
     };
-    ImageLoader.prototype.decodeUncompressed = function (imageData, header, data) {
+    GM1Loader.prototype.decodeUncompressed = function (imageData, header, data) {
         var readPos = 0;
         for (var x = 0; x < header.Width; x++) {
             for (var y = 0; y < header.Height; y++) {
@@ -85,7 +85,7 @@ var ImageLoader = /** @class */ (function () {
             }
         }
     };
-    ImageLoader.prototype.decodeTGX = function (imageData, header, data) {
+    GM1Loader.prototype.decodeTGX = function (imageData, header, data) {
         var x = 0;
         var y = 0;
         var readPos = 0;
@@ -134,11 +134,11 @@ var ImageLoader = /** @class */ (function () {
             break;
         }
     };
-    ImageLoader.prototype.parseGM1Header = function (header, dataView) {
+    GM1Loader.prototype.parseGM1Header = function (header, dataView) {
         header.ImageCount = dataView.getInt32(12, true);
         header.DataType = dataView.getInt32(20, true);
     };
-    ImageLoader.prototype.loadImage = function (url) {
+    GM1Loader.prototype.loadImage = function (url) {
         var _this = this;
         var oReq = new XMLHttpRequest();
         oReq.open("GET", url, true);
@@ -270,12 +270,12 @@ var ImageLoader = /** @class */ (function () {
             oReq.send(null);
         });
     };
-    ImageLoader.QUANTITY_OFFSET = 12;
-    ImageLoader.DATA_TYPE_OFFSET = 20;
-    ImageLoader.GM1TilePixelsPerLine = [2, 6, 10, 14, 18, 22, 26, 30, 30, 26, 22, 18, 14, 10, 6, 2];
+    GM1Loader.QUANTITY_OFFSET = 12;
+    GM1Loader.DATA_TYPE_OFFSET = 20;
+    GM1Loader.GM1TilePixelsPerLine = [2, 6, 10, 14, 18, 22, 26, 30, 30, 26, 22, 18, 14, 10, 6, 2];
     // Header + Palette
-    ImageLoader.IMAGE_OFFSET = 88 + 5120;
-    return ImageLoader;
+    GM1Loader.IMAGE_OFFSET = 88 + 5120;
+    return GM1Loader;
 }());
-exports.ImageLoader = ImageLoader;
-//# sourceMappingURL=image-loader.js.map
+exports.GM1Loader = GM1Loader;
+//# sourceMappingURL=g-m1-loader.js.map

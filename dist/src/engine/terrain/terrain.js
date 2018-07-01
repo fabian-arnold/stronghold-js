@@ -152,7 +152,8 @@ var Terrain = /** @class */ (function (_super) {
     Terrain.prototype.init = function () {
         for (var i = 0; i < this.chunkCountI; i++) {
             for (var j = 0; j < this.chunkCountJ; j++) {
-                this.chunks[i][j].preRender();
+                //FIXME removed due to loading performance
+                //       this.chunks[i][j].preRender();
             }
         }
     };

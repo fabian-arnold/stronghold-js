@@ -1,4 +1,4 @@
-import {GM1Tile, Image} from "../../resource/image-loader";
+import {GM1Tile, Image} from "../../resource/gm1-loader";
 import {CanvasUtil} from "../../util/canvas-util";
 import {Point} from "../engine";
 import {Camera} from "../camera";
@@ -182,7 +182,8 @@ export class Terrain extends GameObject {
 
         for (let i = 0; i < this.chunkCountI; i++) {
             for (let j = 0; j < this.chunkCountJ; j++) {
-                this.chunks[i][j].preRender();
+                //FIXME removed due to loading performance
+                //       this.chunks[i][j].preRender();
             }
         }
     }
