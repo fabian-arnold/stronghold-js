@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var terrain_1 = require("./terrain/terrain");
 var camera_1 = require("./camera");
+var input_1 = require("./input");
 var Point = /** @class */ (function () {
     function Point(x, y) {
         this.x = x;
@@ -28,38 +29,40 @@ var Engine = /** @class */ (function () {
         this.currentTime = 0;
         this.delta = 0;
         this.tileWidth = 16;
+        this.gameObjects = [];
         this.gameContainer = document.createElement('div');
         this.terrainCanvas = document.createElement('canvas');
         this.terrainCtx = this.terrainCanvas.getContext('2d');
-        this.terrainCanvas.height = 768;
-        this.terrainCanvas.width = 1024;
-        this.gameContainer.style.height = "768px";
-        this.gameContainer.style.width = "1024px";
+        this.terrainCanvas.height = window.innerHeight;
+        this.terrainCanvas.width = window.innerWidth;
         this.gameContainer.appendChild(this.terrainCanvas);
-        document.body.addEventListener("keydown", function (event) {
-            console.log("KeyDown", event);
-            if (event.key == "s") {
-                _this.camera.setPos(_this.camera.x, (_this.movementSpeed * _this.delta) + _this.camera.y);
-            }
-            if (event.key == "a") {
-                _this.camera.setPos(-(_this.movementSpeed * _this.delta) + _this.camera.x, _this.camera.y);
-            }
-            if (event.key == "w") {
-                _this.camera.setPos(_this.camera.x, -(_this.movementSpeed * _this.delta) + _this.camera.y);
-            }
-            if (event.key == "d") {
-                _this.camera.setPos((_this.movementSpeed * _this.delta) + _this.camera.x, _this.camera.y);
-            }
-        }, false);
+        this.input = new input_1.Input();
+        this.input.register();
         this.camera = new camera_1.Camera();
         this.camera.setPos(500, 100);
         this.terrain = new terrain_1.Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
+        this.gameObjects.push(this.terrain);
+        this.gameObjects.push(this.input);
         this.terrainCanvas.onmousedown = function (event) {
             var rect = _this.terrainCanvas.getBoundingClientRect();
             _this.click(event.clientX - rect.left, event.clientY - rect.top);
         };
         document.body.appendChild(this.gameContainer);
     }
+    Engine.prototype.init = function () {
+        for (var _i = 0, _a = this.gameObjects; _i < _a.length; _i++) {
+            var go = _a[_i];
+            go.preInit();
+        }
+        for (var _b = 0, _c = this.gameObjects; _b < _c.length; _b++) {
+            var go = _c[_b];
+            go.init(this);
+        }
+        for (var _d = 0, _e = this.gameObjects; _d < _e.length; _d++) {
+            var go = _e[_d];
+            go.postInit();
+        }
+    };
     Engine.chunkForPixel = function (x, y) {
         var xMod = x % (terrain_1.Terrain.tileSize * 2);
         var yMod = y % terrain_1.Terrain.tileSize;
@@ -91,16 +94,55 @@ var Engine = /** @class */ (function () {
         window.requestAnimationFrame(this.render.bind(this));
         this.currentTime = (new Date()).getTime();
         this.delta = (this.currentTime - this.lastTime) / 1000;
+        this.lastTime = this.currentTime;
+        this.update();
         this.terrainCtx.fillStyle = "black";
         this.terrainCtx.fillRect(0, 0, this.terrainCanvas.width, this.terrainCanvas.height);
         this.terrainCtx.save();
         this.terrainCtx.translate(-this.camera.x, -this.camera.y);
-        this.terrain.render();
+        for (var _i = 0, _a = this.gameObjects; _i < _a.length; _i++) {
+            var go = _a[_i];
+            go.preRender();
+        }
+        for (var _b = 0, _c = this.gameObjects; _b < _c.length; _b++) {
+            var go = _c[_b];
+            go.render(this.terrainCtx);
+        }
+        for (var _d = 0, _e = this.gameObjects; _d < _e.length; _d++) {
+            var go = _e[_d];
+            go.postRender();
+        }
         this.terrainCtx.restore();
-        this.terrainCtx.fillStyle = "green";
-        this.terrainCtx.fillText("FPS: " + Math.round(1 / this.delta), 20, 20);
+        //this.terrainCtx.fillStyle = "green";
+        //this.terrainCtx.fillText("FPS: " + Math.round(1 / this.delta), 20, 20);
+        //  console.log( Math.round(1 / this.delta));
         //this.terrainCtx.stroke();
-        this.lastTime = this.currentTime;
+    };
+    Engine.prototype.update = function () {
+        if (this.input.isDown(input_1.InputSequence.UP)) {
+            this.camera.setPos(this.camera.x, -(this.movementSpeed * this.delta) + this.camera.y);
+        }
+        if (this.input.isDown(input_1.InputSequence.DOWN)) {
+            this.camera.setPos(this.camera.x, (this.movementSpeed * this.delta) + this.camera.y);
+        }
+        if (this.input.isDown(input_1.InputSequence.LEFT)) {
+            this.camera.setPos(-(this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
+        }
+        if (this.input.isDown(input_1.InputSequence.RIGHT)) {
+            this.camera.setPos((this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
+        }
+        for (var _i = 0, _a = this.gameObjects; _i < _a.length; _i++) {
+            var go = _a[_i];
+            go.preUpdate();
+        }
+        for (var _b = 0, _c = this.gameObjects; _b < _c.length; _b++) {
+            var go = _c[_b];
+            go.update();
+        }
+        for (var _d = 0, _e = this.gameObjects; _d < _e.length; _d++) {
+            var go = _e[_d];
+            go.postUpdate();
+        }
     };
     return Engine;
 }());

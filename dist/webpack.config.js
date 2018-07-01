@@ -1,4 +1,5 @@
 var path = require('path');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
     entry: './src/index.ts',
     devtool: 'inline-source-map',
@@ -23,6 +24,9 @@ module.exports = {
         contentBase: path.join(__dirname, 'dist'),
         compress: true,
         port: 9000
-    }
+    },
+    plugins: [
+        new CopyWebpackPlugin([{ from: 'src/*.html', to: 'dist/' }])
+    ]
 };
 //# sourceMappingURL=webpack.config.js.map

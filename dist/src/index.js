@@ -12,9 +12,11 @@ var engine = new engine_1.Engine();
 var resourceManager = new resource_manager_1.ResourceManager();
 resourceManager.loadResources().subscribe(function (_) {
     resourceManager.addDebugGUI();
+    engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.TERRAIN_GRASSLANDS, 0).tiles);
     engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.TERRAIN_STONELANDS, 0).tiles);
     engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.TERRAIN_STONELANDS, 1).tiles);
-    engine.addTile(resourceManager.getGameTile(resource_manager_1.ResourceCollections.BUILDINGS_CASTLES, 7).tiles);
+    //engine.addTile(resourceManager.getGameTile(ResourceCollections.BUILDINGS_CASTLES, 7).tiles);
+    engine.init();
     engine.start();
 });
 //# sourceMappingURL=index.js.map

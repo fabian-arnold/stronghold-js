@@ -1,4 +1,5 @@
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry: './src/index.ts',
@@ -24,5 +25,9 @@ module.exports = {
         contentBase: path.join(__dirname, 'dist'),
         compress: true,
         port: 9000
-    }
-};
+    },
+    plugins: [
+        new CopyWebpackPlugin([{from: 'src/*.html', to: 'dist/'}])
+    ]
+}
+;

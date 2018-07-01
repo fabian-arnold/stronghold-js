@@ -1,7 +1,19 @@
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var canvas_util_1 = require("../../util/canvas-util");
 var engine_1 = require("../engine");
+var gameObject_1 = require("../gameObject");
+var SimplexNoise = require("simplex-noise");
 var LevelTile = /** @class */ (function () {
     function LevelTile() {
     }
@@ -35,6 +47,11 @@ var Chunk = /** @class */ (function () {
     };
     Chunk.prototype.markDirty = function () {
         this.dirty = true;
+    };
+    Chunk.prototype.preRender = function () {
+        if (this.dirty) {
+            this.updateChunk();
+        }
     };
     Chunk.prototype.updateChunk = function () {
         for (var i = 0; i < this.countI; i++) {
@@ -83,61 +100,80 @@ var Chunk = /** @class */ (function () {
     };
     return Chunk;
 }());
-var Terrain = /** @class */ (function () {
+var Terrain = /** @class */ (function (_super) {
+    __extends(Terrain, _super);
     function Terrain(ctx, camera, tiles, width, height) {
-        this.ctx = ctx;
-        this.camera = camera;
-        this.tiles = tiles;
-        this.width = width;
-        this.height = height;
-        this.chunkTileSize = 20;
-        this.levelData = null;
-        this.chunks = [];
-        if (width % this.chunkTileSize != 0 || height % this.chunkTileSize != 0) {
+        var _this = _super.call(this) || this;
+        _this.ctx = ctx;
+        _this.camera = camera;
+        _this.tiles = tiles;
+        _this.width = width;
+        _this.height = height;
+        _this.chunkTileSize = 50;
+        _this.levelData = null;
+        _this.chunks = [];
+        _this.gen = new SimplexNoise();
+        if (width % _this.chunkTileSize != 0 || height % (_this.chunkTileSize * 2) != 0) {
             throw new Error("Invalid chunk size.\n width / height % this.chunkTileSize must be 0");
         }
-        this.chunkCountI = (this.width / this.chunkTileSize);
-        this.chunkCountJ = (this.height / this.chunkTileSize);
+        _this.chunkCountI = (_this.width / _this.chunkTileSize);
+        _this.chunkCountJ = (_this.height / (_this.chunkTileSize * 2));
         // Initialize Level Data
-        if (this.levelData == null) {
-            this.levelData = [];
-            for (var i = 0; i < this.width; i++) {
+        if (_this.levelData == null) {
+            _this.levelData = [];
+            for (var i = 0; i < _this.width; i++) {
                 var row = [];
-                this.levelData.push(row);
-                for (var j = 0; j < this.height; j++) {
-                    row.push({ tileID: 0, height: 0, dirty: true });
+                _this.levelData.push(row);
+                for (var j = 0; j < _this.height; j++) {
+                    var nx = i / width - 0.5, ny = j / height - 0.5;
+                    var tileId = Math.min(2, Math.max(0, Math.floor((_this.noise(nx, ny) * 3))));
+                    //console.log(tileId);
+                    row.push({ tileID: tileId, height: 0, dirty: true });
                 }
             }
         }
         // Create Chunks
-        for (var i = 0; i < this.chunkCountI; i++) {
-            this.chunks[i] = [];
-            for (var j = 0; j < this.chunkCountJ; j++) {
-                this.chunks[i][j] = new Chunk(this.levelData, this.tiles, i * this.chunkTileSize, j * this.chunkTileSize, this.chunkTileSize, this.chunkTileSize);
+        for (var i = 0; i < _this.chunkCountI; i++) {
+            _this.chunks[i] = [];
+            for (var j = 0; j < _this.chunkCountJ; j++) {
+                _this.chunks[i][j] = new Chunk(_this.levelData, _this.tiles, i * _this.chunkTileSize, j * _this.chunkTileSize * 2, _this.chunkTileSize, _this.chunkTileSize * 2);
+                //this.chunks[i][j].preRender();
             }
         }
+        return _this;
     }
     Terrain.prototype.setTileId = function (i, j, tileId) {
         this.levelData[i][j].tileID = tileId;
-        this.chunks[Math.floor(i / this.chunkTileSize)][Math.floor(j / this.chunkTileSize)].markDirty();
+        this.chunks[Math.floor(i / this.chunkTileSize)][Math.floor(j / (this.chunkTileSize * 2))].markDirty();
     };
     Terrain.prototype.getTileId = function (i, j) {
         return this.levelData[i][j].tileID;
     };
+    Terrain.prototype.init = function () {
+        for (var i = 0; i < this.chunkCountI; i++) {
+            for (var j = 0; j < this.chunkCountJ; j++) {
+                this.chunks[i][j].preRender();
+            }
+        }
+    };
     Terrain.prototype.render = function () {
         // Half tile size offset value
         var startI = Math.max(Math.floor((this.camera.x - Terrain.tileSize) / (this.chunkTileSize * Terrain.tileSize * 2)), 0);
-        var startJ = Math.max(Math.floor((this.camera.y - Terrain.tileSize / 2) / (this.chunkTileSize * Terrain.tileSize)), 0);
+        var startJ = Math.max(Math.floor((this.camera.y - Terrain.tileSize / 2) / (this.chunkTileSize * 2 * Terrain.tileSize)), 0);
         var endI = Math.min(Math.ceil((this.camera.x + this.ctx.canvas.width) / (this.chunkTileSize * Terrain.tileSize * 2)), this.chunkCountI);
-        var endJ = Math.min(Math.ceil((this.camera.y + this.ctx.canvas.height) / (this.chunkTileSize * Terrain.tileSize)), this.chunkCountJ);
+        var endJ = Math.min(Math.ceil((this.camera.y + this.ctx.canvas.height) / (this.chunkTileSize * 2 * Terrain.tileSize)), this.chunkCountJ);
         for (var x = startI; x < endI; x++) {
             for (var y = startJ; y < endJ; y++) {
                 this.chunks[x][y].render(this.ctx);
             }
         }
     };
+    Terrain.prototype.noise = function (nx, ny) {
+        // Rescale from -1.0:+1.0 to 0.0:1.0
+        return this.gen.noise2D(nx * 4, ny * 4) / 2 + 0.5;
+    };
     Terrain.tileSize = 12;
     return Terrain;
-}());
+}(gameObject_1.GameObject));
 exports.Terrain = Terrain;
 //# sourceMappingURL=terrain.js.map

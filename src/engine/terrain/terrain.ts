@@ -1,7 +1,9 @@
-import {Image, GM1Tile} from "../../resource/image-loader";
+import {GM1Tile, Image} from "../../resource/image-loader";
 import {CanvasUtil} from "../../util/canvas-util";
 import {Point} from "../engine";
 import {Camera} from "../camera";
+import {GameObject} from "../gameObject";
+import SimplexNoise = require("simplex-noise");
 
 
 class LevelTile {
@@ -48,6 +50,12 @@ class Chunk {
 
     public markDirty() {
         this.dirty = true;
+    }
+
+    public preRender() {
+        if (this.dirty) {
+            this.updateChunk();
+        }
     }
 
     private updateChunk() {
@@ -106,11 +114,11 @@ class Chunk {
 
 }
 
-export class Terrain {
+export class Terrain extends GameObject {
 
     public static readonly tileSize: number = 12;
 
-    readonly chunkTileSize: number = 20;
+    readonly chunkTileSize: number = 50;
 
     private levelData: LevelTile[][] = null;
     private chunks: Chunk[][] = [];
@@ -119,23 +127,32 @@ export class Terrain {
     private chunkCountI: number;
     private chunkCountJ: number;
 
-    constructor(private ctx: CanvasRenderingContext2D, private camera: Camera, private tiles: GM1Tile[][], private width: number, private height: number) {
+    private gen = new SimplexNoise();
 
-        if (width % this.chunkTileSize != 0 || height % this.chunkTileSize != 0) {
+    constructor(private ctx: CanvasRenderingContext2D, private camera: Camera, private tiles: GM1Tile[][], private width: number, private height: number) {
+        super();
+        if (width % this.chunkTileSize != 0 || height % (this.chunkTileSize * 2) != 0) {
             throw new Error("Invalid chunk size.\n width / height % this.chunkTileSize must be 0")
         }
 
         this.chunkCountI = (this.width / this.chunkTileSize);
-        this.chunkCountJ = (this.height / this.chunkTileSize);
+        this.chunkCountJ = (this.height / (this.chunkTileSize * 2));
 
         // Initialize Level Data
         if (this.levelData == null) {
+
             this.levelData = [];
             for (let i = 0; i < this.width; i++) {
                 const row: LevelTile[] = [];
                 this.levelData.push(row);
                 for (let j = 0; j < this.height; j++) {
-                    row.push({tileID: 0, height: 0, dirty: true});
+
+                    let nx = i / width - 0.5, ny = j / height - 0.5;
+
+
+                    const tileId = Math.min(2, Math.max(0, Math.floor((this.noise(nx, ny) * 3))));
+                    //console.log(tileId);
+                    row.push({tileID: tileId, height: 0, dirty: true});
                 }
             }
         }
@@ -144,7 +161,8 @@ export class Terrain {
         for (let i = 0; i < this.chunkCountI; i++) {
             this.chunks[i] = [];
             for (let j = 0; j < this.chunkCountJ; j++) {
-                this.chunks[i][j] = new Chunk(this.levelData, this.tiles, i * this.chunkTileSize, j * this.chunkTileSize, this.chunkTileSize, this.chunkTileSize);
+                this.chunks[i][j] = new Chunk(this.levelData, this.tiles, i * this.chunkTileSize, j * this.chunkTileSize * 2, this.chunkTileSize, this.chunkTileSize * 2);
+                //this.chunks[i][j].preRender();
             }
         }
 
@@ -153,27 +171,41 @@ export class Terrain {
 
     public setTileId(i: number, j: number, tileId: number) {
         this.levelData[i][j].tileID = tileId;
-        this.chunks[Math.floor(i / this.chunkTileSize)][Math.floor(j / this.chunkTileSize)].markDirty();
+        this.chunks[Math.floor(i / this.chunkTileSize)][Math.floor(j / (this.chunkTileSize * 2))].markDirty();
     }
 
     public getTileId(i: number, j: number): number {
         return this.levelData[i][j].tileID;
     }
 
+    public init() {
+
+        for (let i = 0; i < this.chunkCountI; i++) {
+            for (let j = 0; j < this.chunkCountJ; j++) {
+                this.chunks[i][j].preRender();
+            }
+        }
+    }
+
     public render() {
 
         // Half tile size offset value
         const startI = Math.max(Math.floor((this.camera.x - Terrain.tileSize) / (this.chunkTileSize * Terrain.tileSize * 2)), 0);
-        const startJ = Math.max(Math.floor((this.camera.y - Terrain.tileSize / 2) / (this.chunkTileSize * Terrain.tileSize)), 0);
+        const startJ = Math.max(Math.floor((this.camera.y - Terrain.tileSize / 2) / (this.chunkTileSize * 2 * Terrain.tileSize)), 0);
 
         const endI = Math.min(Math.ceil((this.camera.x + this.ctx.canvas.width) / (this.chunkTileSize * Terrain.tileSize * 2)), this.chunkCountI);
-        const endJ = Math.min(Math.ceil((this.camera.y + this.ctx.canvas.height) / (this.chunkTileSize * Terrain.tileSize)), this.chunkCountJ);
+        const endJ = Math.min(Math.ceil((this.camera.y + this.ctx.canvas.height) / (this.chunkTileSize * 2 * Terrain.tileSize)), this.chunkCountJ);
 
         for (let x = startI; x < endI; x++) {
             for (let y = startJ; y < endJ; y++) {
                 this.chunks[x][y].render(this.ctx);
             }
         }
+    }
+
+    private noise(nx: number, ny: number) {
+        // Rescale from -1.0:+1.0 to 0.0:1.0
+        return this.gen.noise2D(nx * 4, ny * 4) / 2 + 0.5;
     }
 
 }

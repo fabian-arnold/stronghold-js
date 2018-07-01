@@ -1,6 +1,8 @@
 import {GameTile, GM1Tile} from "../resource/image-loader";
 import {Terrain} from "./terrain/terrain";
 import {Camera} from "./camera";
+import {Input, InputSequence} from "./input";
+import {GameObject} from "./gameObject";
 
 export class Point {
     constructor(public x: number, public y: number) {
@@ -28,6 +30,9 @@ export class Engine {
     private currentTime = 0;
     private delta = 0;
     private tileWidth = 16;
+    private input: Input;
+
+    private gameObjects: GameObject[] = [];
 
     constructor() {
         this.gameContainer = document.createElement('div');
@@ -35,35 +40,22 @@ export class Engine {
         this.terrainCanvas = document.createElement('canvas');
         this.terrainCtx = this.terrainCanvas.getContext('2d');
 
-        this.terrainCanvas.height = 768;
-        this.terrainCanvas.width = 1024;
-
-        this.gameContainer.style.height = "768px";
-        this.gameContainer.style.width = "1024px";
+        this.terrainCanvas.height = window.innerHeight;
+        this.terrainCanvas.width = window.innerWidth;
 
         this.gameContainer.appendChild(this.terrainCanvas);
-
-        document.body.addEventListener("keydown", (event: KeyboardEvent) => {
-            console.log("KeyDown", event);
-            if (event.key == "s") {
-                this.camera.setPos(this.camera.x, (this.movementSpeed * this.delta) + this.camera.y);
-            }
-            if (event.key == "a") {
-                this.camera.setPos(-(this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
-            }
-            if (event.key == "w") {
-                this.camera.setPos(this.camera.x, -(this.movementSpeed * this.delta) + this.camera.y);
-            }
-            if (event.key == "d") {
-                this.camera.setPos((this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
-            }
-        }, false);
+        this.input = new Input();
+        this.input.register();
 
         this.camera = new Camera();
         this.camera.setPos(500, 100);
 
+
+
         this.terrain = new Terrain(this.terrainCtx, this.camera, this.tiles, 500, 500);
 
+        this.gameObjects.push(this.terrain);
+        this.gameObjects.push(this.input);
 
         this.terrainCanvas.onmousedown = (event) => {
             const rect = this.terrainCanvas.getBoundingClientRect();
@@ -71,6 +63,19 @@ export class Engine {
         };
 
         document.body.appendChild(this.gameContainer);
+    }
+
+    public init(){
+        for(let go of this.gameObjects){
+            go.preInit();
+        }
+        for(let go of this.gameObjects){
+            go.init(this);
+        }
+        for(let go of this.gameObjects){
+            go.postInit();
+        }
+
     }
 
     public static chunkForPixel(x: number, y: number): ChunkPos {
@@ -118,6 +123,9 @@ export class Engine {
 
         this.currentTime = (new Date()).getTime();
         this.delta = (this.currentTime - this.lastTime) / 1000;
+        this.lastTime = this.currentTime;
+
+        this.update();
 
         this.terrainCtx.fillStyle = "black";
         this.terrainCtx.fillRect(0, 0, this.terrainCanvas.width, this.terrainCanvas.height);
@@ -125,15 +133,54 @@ export class Engine {
 
         this.terrainCtx.save();
         this.terrainCtx.translate(-this.camera.x, -this.camera.y);
-        this.terrain.render();
+
+        for(let go of this.gameObjects){
+            go.preRender();
+        }
+        for(let go of this.gameObjects){
+            go.render(this.terrainCtx);
+        }
+        for(let go of this.gameObjects){
+            go.postRender();
+        }
+
         this.terrainCtx.restore();
 
-        this.terrainCtx.fillStyle = "green";
-        this.terrainCtx.fillText("FPS: " + Math.round(1 / this.delta), 20, 20);
+        //this.terrainCtx.fillStyle = "green";
+        //this.terrainCtx.fillText("FPS: " + Math.round(1 / this.delta), 20, 20);
+
+        //  console.log( Math.round(1 / this.delta));
         //this.terrainCtx.stroke();
-        this.lastTime = this.currentTime;
 
     }
 
+    private update() {
+        if (this.input.isDown(InputSequence.UP)) {
+            this.camera.setPos(this.camera.x, -(this.movementSpeed * this.delta) + this.camera.y);
+
+        }
+        if (this.input.isDown(InputSequence.DOWN)) {
+            this.camera.setPos(this.camera.x, (this.movementSpeed * this.delta) + this.camera.y);
+
+        }
+        if (this.input.isDown(InputSequence.LEFT)) {
+            this.camera.setPos(-(this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
+
+        }
+        if (this.input.isDown(InputSequence.RIGHT)) {
+            this.camera.setPos((this.movementSpeed * this.delta) + this.camera.x, this.camera.y);
+        }
+
+
+        for(let go of this.gameObjects){
+            go.preUpdate();
+        }
+        for(let go of this.gameObjects){
+            go.update();
+        }
+        for(let go of this.gameObjects){
+            go.postUpdate();
+        }
+    }
 
 }
